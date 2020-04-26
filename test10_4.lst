@@ -1,0 +1,73 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 19:09:00
+tempfile.asm						     Page 1 - 1
+
+
+				;解决除法溢出子程序
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+ 0000  B8 4240			    mov ax,4240H	;计算1000000/10（F4240H/0AH）
+ 0003  BA 000F			    mov dx,000Fh	;ax存放低16位，dx存放高16位
+ 0006  B9 000A			    mov cx,0ah		;cx存放除数16位
+ 0009  E8 0004			    call divdw
+				    
+ 000C  B4 4C			    MOV AH,4CH
+ 000E  CD 21			    INT 21H
+				    
+ 0010				    divdw:
+ 0010  1E			    push ds
+ 0011  52			    push dx
+ 0012  51			    push cx
+ 0013  50			    push ax
+				    
+ 0014  8B C2			    mov ax,dx	;先求高16位除以除数的结果，ax存放商，dx存放余数
+ 0016  33 D2			    xor dx,dx
+ 0018  F7 F1			    div cx
+ 001A  52			    push dx
+				    			;将余数保存下来
+ 001B  8B D0			    mov dx,ax
+ 001D  33 C0			    xor ax,ax
+ 001F  A3 0000			    mov ds:[0],ax
+ 0022  89 16 0002		    mov ds:[2],dx;将高16位的除法结果保存在高地址字单元中
+				    
+ 0026  5A			    pop dx		;弹出高16位除法结果的余数
+ 0027  58			    pop ax		;将被除数的低16位取出来
+ 0028  50			    push ax		;恢复栈顶，维持push和pop平衡
+ 0029  F7 F1			    div cx		;此时dx存放高16位除法的余数，ax存放被除数低16位
+				    			;最后结果ax存放商，dx存放余数
+				    			
+ 002B  A3 0000			    mov ds:[0],ax;将低16位的除法结果商放在低地址字单元
+ 002E  89 16 0004		    mov ds:[4],dx;最后的余数放在ds:[4]字单元中
+				    ;最后结果的低16位在ds:[0],高16位在ds:[2],余数在ds:[4]
+ 0032  58			    pop ax
+ 0033  59			    pop cx
+ 0034  5A			    pop dx
+ 0035  1F			    pop ds
+ 0036  C3			    ret
+ 0037				CODES ENDS
+				    END START
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 19:09:00
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0037	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+divdw  . . . . . . . . . . . . .	L Near	 0010	  CODES	
+
+	   0 Warnings
+	   0 Errors

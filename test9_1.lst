@@ -1,0 +1,54 @@
+Microsoft (R) Macro Assembler Version 6.11		    02/24/20 21:32:59
+tempfile.asm						     Page 1 - 1
+
+
+				ASSUME CS:CODES
+ 0000				CODES SEGMENT
+ 0000  B8 4C00			    mov ax,4c00h
+ 0003  CD 21			    int 21h
+				    
+ 0005				START:
+ 0005  B8 0000			    MOV AX,0
+ 0008  90			    s: nop 
+ 0009  90			    nop
+ 000A  BF 0008 R		    mov di,offset s
+ 000D  BE 0020 R		    mov si,offset s2
+ 0010  2E: 8B 04		    mov ax,cs:[si]
+ 0013  2E: 89 05		    mov cs:[di],ax
+				    
+ 0016  EB F0			    s0:jmp short s
+				    
+ 0018  B8 0000			    s1:mov ax,0
+ 001B  CD 21			    int 21h
+ 001D  B8 0000			    mov ax,0
+				    
+ 0020  EB F6			    s2: jmp short s1
+ 0022  90			    nop
+				  
+ 0023				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    02/24/20 21:32:59
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0023	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0005	  CODES	
+s0 . . . . . . . . . . . . . . .	L Near	 0016	  CODES	
+s1 . . . . . . . . . . . . . . .	L Near	 0018	  CODES	
+s2 . . . . . . . . . . . . . . .	L Near	 0020	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 0008	  CODES	
+
+	   0 Warnings
+	   0 Errors

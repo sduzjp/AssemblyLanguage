@@ -1,0 +1,255 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/10/20 11:21:44
+tempfile.asm						     Page 1 - 1
+
+
+				;实现输入两个任意位数(最高15位)十进制数
+				;若15位大数相加有进位也可正常显示，但16位大数相加进位的话则需改动显示位数
+				;其余少于16位的任意位数相加均可正常显示十进制数相加结果
+				;定义一个缓冲区存放键盘输入
+ 0000				data segment
+ 0000 64				buf db 100
+ 0001  00					db ?
+ 0002  0064 [					db 100 dup(0)
+        00
+       ]
+ 0066 64				buf1 db 100
+ 0067  00					 db ?
+ 0068  0064 [					 db 100 dup(0)
+        00
+       ]
+ 00CC 0D 0A 50 6C 65 61			infon1 db 0dh,0ah,'Please input the first number:$'
+       73 65 20 69 6E 70
+       75 74 20 74 68 65
+       20 66 69 72 73 74
+       20 6E 75 6D 62 65
+       72 3A 24
+ 00ED 0D 0A 50 6C 65 61			infon2 db 0dh,0ah,'Please input the second number:$'
+       73 65 20 69 6E 70
+       75 74 20 74 68 65
+       20 73 65 63 6F 6E
+       64 20 6E 75 6D 62
+       65 72 3A 24
+ 010F				data ends
+
+ 0000				datas segment
+ 0000  0080 [				db 128 dup(0)
+        00
+       ]
+ 0080				datas ends;定义一个datas数据段，128个字节
+
+ 0000				show segment
+ 0000  0080 [				db 128 dup(0)
+        00
+       ]
+ 0080				show ends;定义一个show数据段，128个字节
+
+ 0000				show1 segment
+ 0000  0080 [				db 128 dup(0)
+        00
+       ]
+ 0080				show1 ends;定义一个show1数据段，128个字节
+
+ 0000				stack segment
+ 0000  0004 [				dw 4 dup(0)
+        0000
+       ]
+ 0008				stack ends;定义一个栈段用来保存数字的4个16位
+
+ 0000				code segment
+					assume cs:code,ds:data,ss:stack
+ 0000				start:
+					;用int21h的10号功能调用实现输入一个字符串并存到内存缓冲区data
+ 0000  B8 ---- R			mov ax,data
+ 0003  8E D8				mov ds,ax
+					
+ 0005  8D 16 00CC R			lea dx,infon1
+ 0009  B4 09				mov ah,9
+ 000B  CD 21				int 21h;屏幕显示提示输入信息
+					
+ 000D  8D 16 0000 R			lea dx,buf
+ 0011  B4 0A				mov ah,10
+ 0013  CD 21				int 21h ;输入第一个十进制数字符串
+					
+ 0015  BB ---- R			mov bx,show
+ 0018  8E C3				mov es,bx
+ 001A  33 FF				xor di,di;es:di指向show段，依次存放输入十进制的低位到高位
+ 001C  8D 36 0001 R			lea si,buf+1
+ 0020  8A 0E 0001 R			mov cl,[buf+1]
+ 0024  B5 00				mov ch,0;实际输入十进制数位数
+ 0026  03 F1				add si,cx;ds:si指向第一个十进制数最后一位
+ 0028					a:
+ 0028  8A 04				mov al,ds:[si]
+ 002A  2C 30				sub al,30h;将十进制字符串字符转换为十进制
+ 002C  26: 88 05			mov es:[di],al;十进制数从低位开始存到show段
+ 002F  4E				dec si
+ 0030  47				inc di
+ 0031  E2 F5				loop a
+					;未满16位的高位位数补0
+ 0033  8A 0E 0001 R			mov cl,[buf+1]
+ 0037  B5 00				mov ch,0
+ 0039  BE 0010				mov si,16
+ 003C  2B F1				sub si,cx
+ 003E  83 FE 00				cmp si,0
+ 0041  74 0A				jz tiaoguo;若满16位，则跳过补0
+ 0043  8B CE				mov cx,si
+ 0045				bu0:
+ 0045  B0 00				mov al,0
+ 0047  26: 88 05			mov es:[di],al
+ 004A  47				inc di
+ 004B  E2 F8			loop bu0
+ 004D				tiaoguo:
+ 004D  8D 16 00ED R			lea dx,infon2
+ 0051  B4 09				mov ah,9
+ 0053  CD 21				int 21h;屏幕显示提示输入信息
+					
+ 0055  8D 16 0066 R			lea dx,buf1
+ 0059  B4 0A				mov ah,10
+ 005B  CD 21				int 21h ;输入第二个十进制数字符串
+					
+ 005D  BB ---- R			mov bx,show1
+ 0060  8E C3				mov es,bx
+ 0062  33 FF				xor di,di;es:di指向show1段
+ 0064  8D 36 0067 R			lea si,buf1+1
+ 0068  8A 0E 0067 R			mov cl,[buf1+1]
+ 006C  B5 00				mov ch,0;cx存放实际输入的十进制数的位数
+ 006E  03 F1				add si,cx;ds:si指向第二个十进制数字符串最后一位
+ 0070					b:
+ 0070  8A 04				mov al,ds:[si]
+ 0072  2C 30				sub al,30h;将十进制字符串字符转换为十进制数
+ 0074  26: 88 05			mov es:[di],al;将十进制数从低位开始存放到show1段
+ 0077  4E				dec si
+ 0078  47				inc di
+ 0079  E2 F5				loop b
+					;未满16位的高位位数补0
+ 007B  8A 0E 0067 R			mov cl,[buf1+1]
+ 007F  B5 00				mov ch,0
+ 0081  BE 0010				mov si,16
+ 0084  2B F1				sub si,cx
+ 0086  83 FE 00				cmp si,0
+ 0089  74 0A				jz tiaoguo1;若满16位，则跳过补0
+ 008B  8B CE				mov cx,si
+ 008D				bu1:
+ 008D  B0 00				mov al,0
+ 008F  26: 88 05			mov es:[di],al
+ 0092  47				inc di
+ 0093  E2 F8			loop bu1
+				    ;至此完成了两个十进制数从低位到高位分别存放在show和show1段
+
+ 0095				tiaoguo1:   
+ 0095  BB ---- R		    mov bx,show
+ 0098  8E DB			    mov ds,bx
+ 009A  33 F6			    xor si,si;ds:si指向show段，第一个十进制数
+ 009C  33 FF			    xor di,di;es:di指向show1段，第二个十进制数
+ 009E  32 C0			    xor al,al;将(al)置0
+ 00A0  B9 0010				mov cx,16
+ 00A3  51			lp:push cx
+ 00A4  B1 0A			 	mov cl,0ah
+ 00A6  02 04			 	add al,ds:[si]
+ 00A8  26: 02 05		 	add al,es:[di]
+ 00AB  B4 00			 	mov ah,0;进行的十六进制加法结果转十进制
+ 00AD  F6 F1			 	div cl;ah存放余数代表十进制本位数，al存商代表十进制进位数
+ 00AF  88 24			 	mov ds:[si],ah;将最后十进制加法结果从低位到高位存放到show段
+ 00B1  46			 	inc si
+ 00B2  47			 	inc di
+ 00B3  59			 	pop cx
+ 00B4  E2 ED			loop lp
+				 	
+				 	;比较两个实际输入的十进制数位数
+ 00B6  BB ---- R		 	mov bx,data
+ 00B9  8E DB			 	mov ds,bx;使ds指向data缓冲段
+ 00BB  A0 0001 R		 	mov al,[buf+1]
+ 00BE  8A 1E 0067 R		 	mov bl,[buf1+1];分别取得两个输入十进制字符串的位数
+ 00C2  B9 ---- R		 	mov cx,show
+ 00C5  8E D9				mov ds,cx;恢复ds重新指向show段
+ 00C7  38 D8			 	cmp al,bl
+ 00C9  73 02			 	jnb next1;若(al)>=(bl),则第一个十进制数位数多
+ 00CB  EB 12			 	jmp short next2;若(al)<(bl),则第二个十进制数位数多
+ 00CD				next1:
+ 00CD  B4 00				mov ah,0
+ 00CF  8B D8				mov bx,ax
+ 00D1  8B 37				mov si,ds:[bx];判断最后的一个字符是否为0，即判断是否存在进位
+ 00D3  83 FE 00				cmp si,0
+ 00D6  74 17				jz overnext1;若为0，即不存在进位，则显示位数就是两个位数中的大者
+ 00D8  83 C0 01				add ax,1;若为0，即存在进位，则显示位数要在输入两个十进制位数的最大位数上增1
+ 00DB  8B F0				mov si,ax
+ 00DD  EB 16				jmp short zhuanhuan
+ 00DF				next2:
+ 00DF  B7 00				mov bh,0
+ 00E1  8B 37				mov si,ds:[bx];同理判断最后的字符是否为0从而确定显示位数
+ 00E3  83 FE 00				cmp si,0
+ 00E6  74 0B				jz overnext2
+ 00E8  83 C3 01				add bx,1
+ 00EB  8B F3				mov si,bx
+ 00ED  EB 06				jmp short zhuanhuan
+ 00EF				overnext1:
+ 00EF  8B F0			 	mov si,ax
+ 00F1  EB 02			 	jmp short zhuanhuan
+ 00F3				overnext2:
+ 00F3  8B F3				mov si,bx
+					;将最后的十进制结果存入显示缓冲区并转换为ASCII码值
+ 00F5				zhuanhuan:
+ 00F5  8B CE			    mov cx,si;cx记录需要显示的位数
+ 00F7  BB B800				mov bx,0b800h
+ 00FA  8E C3				mov es,bx
+ 00FC  BF 0668				mov di,160*10+20*2;es:di指向显示缓冲区中间
+ 00FF  B2 02			    mov dl,2
+ 0101				 lp1:
+				 ;由于show段低地址存放低字节单元，因此显示的时候要逆序存到显示缓冲
+ 0101  8A 44 FF				mov al,ds:[si-1]
+ 0104  04 30				add al,30h
+ 0106  26: 88 05		    mov es:[di],al
+ 0109  26: 88 55 01		    mov es:[di+1],dl
+ 010D  4E				dec si
+ 010E  83 C7 02				add di,2
+ 0111  E2 EE			 loop lp1
+					
+ 0113  B8 4C00				mov ax,4c00h
+ 0116  CD 21				int 21h;程序返回
+					
+ 0118				code ends
+					end start
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/10/20 11:21:44
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+code . . . . . . . . . . . . . .	16 Bit	 0118	  Para	  Private 
+datas  . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+data . . . . . . . . . . . . . .	16 Bit	 010F	  Para	  Private 
+show1  . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+show . . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+stack  . . . . . . . . . . . . .	16 Bit	 0008	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+a  . . . . . . . . . . . . . . .	L Near	 0028	  code	
+bu0  . . . . . . . . . . . . . .	L Near	 0045	  code	
+bu1  . . . . . . . . . . . . . .	L Near	 008D	  code	
+buf1 . . . . . . . . . . . . . .	Byte	 0066	  data	
+buf  . . . . . . . . . . . . . .	Byte	 0000	  data	
+b  . . . . . . . . . . . . . . .	L Near	 0070	  code	
+infon1 . . . . . . . . . . . . .	Byte	 00CC	  data	
+infon2 . . . . . . . . . . . . .	Byte	 00ED	  data	
+lp1  . . . . . . . . . . . . . .	L Near	 0101	  code	
+lp . . . . . . . . . . . . . . .	L Near	 00A3	  code	
+next1  . . . . . . . . . . . . .	L Near	 00CD	  code	
+next2  . . . . . . . . . . . . .	L Near	 00DF	  code	
+overnext1  . . . . . . . . . . .	L Near	 00EF	  code	
+overnext2  . . . . . . . . . . .	L Near	 00F3	  code	
+start  . . . . . . . . . . . . .	L Near	 0000	  code	
+tiaoguo1 . . . . . . . . . . . .	L Near	 0095	  code	
+tiaoguo  . . . . . . . . . . . .	L Near	 004D	  code	
+zhuanhuan  . . . . . . . . . . .	L Near	 00F5	  code	
+
+	   0 Warnings
+	   0 Errors

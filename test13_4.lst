@@ -1,0 +1,100 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 20:14:45
+tempfile.asm						     Page 1 - 1
+
+
+				;对int、iret和栈的深入理解
+				;用7ch中断例程完成loop指令的功能
+				;中断例程完成cx递减和转移指令操作
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+					;安装中断例程
+ 0000  8C C8				mov ax,cs
+ 0002  8E D8				mov ds,ax
+ 0004  BE 004C R			mov si,offset lp;设置ds:si指向中断例程首地址
+ 0007  33 C0				xor ax,ax
+ 0009  8E C0				mov es,ax
+ 000B  BF 0200				mov di,200h;设置es:di指向安装目的地址0000:0200
+ 000E  B9 000B				mov cx,offset lpend-offset lp;设置传输长度
+ 0011  FC				cld;设置df=0，si,di递增
+ 0012  F3/ A4				rep movsb
+					
+					;设置中断向量表
+ 0014  33 C0				xor ax,ax
+ 0016  8E C0				mov es,ax
+ 0018  26: C7 06 01F0			mov word ptr es:[7ch*4],200h
+       0200
+ 001F  26: C7 06 01F2			mov word ptr es:[7ch*4+2],0
+       0000
+					
+					;在屏幕中间显示40个'!'
+					
+ 0026  B8 B800			    MOV AX,0b800h
+ 0029  8E C0			    mov es,ax
+ 002B  BF 079E			    mov di,160*12+30;设置ds:di指向显示缓冲区的中间部分
+				    
+				    ;cx记录循环次数，bx记录loop指令需要跳转的地址转移长度
+				    ;易错点：当段地址放在es中时，采用段寄存器:[偏移地址]须知方式时，必须注明es
+				    ;易错点：将字符'!'送入显示缓冲区时，须注明byte ptr
+ 002E  26: 88 45 01		    mov es:[di+1],al
+ 0032  BB FFF3			    mov bx,offset s-offset se
+ 0035  B0 02			    mov al,2
+ 0037  B9 0028			    mov cx,40
+ 003A				    s:
+ 003A  26: C6 05 21		    mov byte ptr es:[di],'!'
+ 003E  26: 88 45 01		    mov es:[di+1],al
+ 0042  83 C7 02			    add di,2
+ 0045  CD 7C			    int 7ch
+				    
+ 0047  90			    se:nop
+				    
+ 0048  B4 4C			    MOV AH,4CH
+ 004A  CD 21			    INT 21H
+				    
+				    ;中断例程
+				    ;由于调用中断例程会先将int7ch下一条指令的cs，ip压栈
+				    ;因此需要根据栈内下一条指令的IP以及转移的地址长度来返回循环首地址处
+				    
+ 004C				    lp:
+ 004C  55			    push bp;将bp入栈保护
+ 004D  8B EC			    mov bp,sp;设置ss:bp指向栈顶
+ 004F  49			    dec cx;完成loop指令的cx递减操作
+ 0050  E3 03			    jcxz lpret;如果cx=0直接结束循环，执行循环外下一条指令
+ 0052  01 5E 02			    add [bp+2],bx;如果cx！=0，将压入栈内的int 7ch的下一条指令的IP修改为循环首地址的IP
+ 0055				    lpret:
+ 0055  5D			    pop bp;将bp出栈恢复
+ 0056  CF			    iret;弹出压入栈的CS,IP值以及标志寄存器值
+					
+ 0057  90				lpend:nop
+					
+					
+ 0058				CODES ENDS
+				    END START
+
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 20:14:45
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0058	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+lpend  . . . . . . . . . . . . .	L Near	 0057	  CODES	
+lpret  . . . . . . . . . . . . .	L Near	 0055	  CODES	
+lp . . . . . . . . . . . . . . .	L Near	 004C	  CODES	
+se . . . . . . . . . . . . . . .	L Near	 0047	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 003A	  CODES	
+
+	   0 Warnings
+	   0 Errors

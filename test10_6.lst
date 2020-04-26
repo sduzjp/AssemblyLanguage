@@ -1,0 +1,151 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/05/20 21:37:43
+tempfile.asm						     Page 1 - 1
+
+
+				;dtoc子程序将word型数据转变为表示十进制数的字符串
+				;show_str子程序显示以0结尾的字符串
+				;显示十进制数值改进程序
+				;程序还需改进地方，存在除法溢出
+ 0000				DATAS SEGMENT
+ 0000  000A [			    db 10 dup (0) 
+        00
+       ]
+ 000A				DATAS ENDS
+
+ 0000				stack segment
+ 0000  0100 [				db 256 dup (0)
+        00
+       ]
+ 0100				stack ends
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  BB ---- R		    MOV bx,DATAS
+ 0003  8E DB			    MOV DS,bx
+ 0005  BB ---- R		    mov bx,stack
+ 0008  8E D3			    mov ss,bx
+ 000A  BC 0100			    mov sp,100h
+ 000D  B8 2710			    mov ax,10000
+ 0010  33 F6			    xor si,si
+ 0012  E8 000D			    call dtoc
+				    
+ 0015  B6 08			    mov dh,8
+ 0017  B2 03			    mov dl,3
+ 0019  B1 02			    mov cl,2
+ 001B  E8 0038			    call show_str
+				    
+ 001E  B4 4C			    done:MOV AH,4CH
+ 0020  CD 21			    INT 21H
+				    ;利用除10取余法依次将ax中各位数字提取出来
+				    ;然后加上30H变为对应的ASCII码数值存放
+				    ;注意存放的时候的顺序，由于取余时是从最后位开始
+				    ;所以存放时要将顺序反过来,利用push和pop指令实现这一功能
+ 0022  50			    dtoc:push ax
+ 0023  51			    push cx
+ 0024  1E			    push ds
+ 0025  53			    push bx
+ 0026  52			    push dx
+ 0027  57			    push di
+				    
+ 0028  33 F6			    xor si,si
+ 002A  B9 000A				s:mov cx,10
+ 002D  33 D2				xor dx,dx
+ 002F  F7 F1				div cx
+ 0031  83 C2 30				add dx,30h
+ 0034  52				push dx
+ 0035  46				inc si
+ 0036  8B C8				mov cx,ax
+ 0038  E3 03				jcxz s1			;jcxz指令是当cx=0才跳转到标号处执行
+ 003A  E9 FFED				jmp near ptr s
+					
+ 003D  33 FF				s1:xor di,di
+ 003F  8B CE				mov cx,si
+ 0041  8F 05				s2:pop ds:[di]
+ 0043  83 C7 02				add di,2		;注意di的递增数值
+ 0046  49				dec cx
+ 0047  E3 02			    jcxz s3
+ 0049  EB F6				jmp short s2
+					
+ 004B  33 C0				s3:xor ax,ax	;注意最后要在字符串后面字单元存放0
+ 004D  89 05				mov ds:[di],ax
+					
+ 004F  5F			    pop di
+ 0050  5A			    pop dx
+ 0051  5B			    pop bx
+ 0052  1F			    pop ds
+ 0053  59			    pop cx
+ 0054  58			    pop ax
+ 0055  C3			    ret
+				    
+ 0056				    show_str:
+ 0056  06			   	push es
+ 0057  51			   	push cx
+ 0058  50			   	push ax
+ 0059  56			   	push si
+ 005A  1E			   	push ds
+ 005B  53			   	push bx
+				   	
+				   	
+ 005C  BB B800			   	mov bx,0b800h
+ 005F  8E C3			   	mov es,bx
+ 0061  BB 0500			   	mov bx,500h
+ 0064  8A D1			   	mov dl,cl
+ 0066  33 FF			   	xor di,di
+ 0068  33 F6			   	xor si,si
+				   	
+ 006A  8A 05			   	s0:mov al,ds:[di]		;注意是对字节单元进行存储
+ 006C  26: 88 40 04		   	mov es:[bx+si+4],al
+ 0070  26: 88 50 05		   	mov es:[bx+si+5],dl
+ 0074  83 C6 02			   	add si,2
+ 0077  83 C7 02			   	add di,2
+ 007A  3C 00			   	cmp al,0
+ 007C  76 A0				jna done
+ 007E  EB EA			   	jmp short s0
+				   	
+				   	
+ 0080  5B			   	pop bx
+ 0081  1F			   	pop ds
+ 0082  5E			   	pop si
+ 0083  58			   	pop ax
+ 0084  59			   	pop cx
+ 0085  07			   	pop es
+ 0086  C3			   	ret
+				    
+
+ 0087				CODES ENDS
+				    END START
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/05/20 21:37:43
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0087	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 000A	  Para	  Private 
+stack  . . . . . . . . . . . . .	16 Bit	 0100	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+done . . . . . . . . . . . . . .	L Near	 001E	  CODES	
+dtoc . . . . . . . . . . . . . .	L Near	 0022	  CODES	
+s0 . . . . . . . . . . . . . . .	L Near	 006A	  CODES	
+s1 . . . . . . . . . . . . . . .	L Near	 003D	  CODES	
+s2 . . . . . . . . . . . . . . .	L Near	 0041	  CODES	
+s3 . . . . . . . . . . . . . . .	L Near	 004B	  CODES	
+show_str . . . . . . . . . . . .	L Near	 0056	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 002A	  CODES	
+
+	   0 Warnings
+	   0 Errors

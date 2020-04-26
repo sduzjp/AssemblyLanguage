@@ -1,0 +1,93 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 15:57:00
+tempfile.asm						     Page 1 - 1
+
+
+				;编写letterc子程序将包含任意字符以0
+				;结尾的字符串中的小写字母转变为大写字母
+ 0000				DATAS SEGMENT
+ 0000  42 65 67 69 6E 6E	    db "Beginner's All-purpose Symbolic Instruction Code.",0 
+       65 72 27 73 20 41
+       6C 6C 2D 70 75 72
+       70 6F 73 65 20 53
+       79 6D 62 6F 6C 69
+       63 20 49 6E 73 74
+       72 75 63 74 69 6F
+       6E 20 43 6F 64 65
+       2E 00
+ 0032				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,DATAS
+ 0003  8E D8			    MOV DS,AX
+ 0005  33 F6			    xor si,si;ds:si指向字符串首地址
+ 0007  E8 0004			    call letterc
+				    
+ 000A  B4 4C			    MOV AH,4CH
+ 000C  CD 21			    INT 21H
+				    
+ 000E				    letterc:
+ 000E  1E			    push ds
+ 000F  56			    push si
+ 0010  50			    push ax
+ 0011  33 F6			    xor si,si
+ 0013  8A 04			    s:mov al,ds:[si]
+ 0015  3C 00			    cmp al,0;判别字符是否为0，如果是则结束循环
+ 0017  74 14			    je next1
+ 0019  3C 61			    cmp al,97;判别字符是否大于等于'a'，如果小于则进行下一次循环
+ 001B  73 02			    jnb next
+ 001D  EB 0A			    jmp short done
+				    
+ 001F				    next:
+ 001F  3C 7A			    cmp al,122;判别字符是否小于等于'z',如果大于则进行下一次循环
+ 0021  76 02			    jna ok
+ 0023  EB 04			    jmp short done 
+				    
+ 0025				    ok:
+ 0025  24 DF			    and al,11011111b;将小写字符转变成大写
+ 0027  88 04			    mov ds:[si],al
+				    
+ 0029  90			    done:nop
+				    
+ 002A  46			    inc si;si递增1
+ 002B  EB E6			    jmp short s
+				    
+ 002D  90			    next1:nop
+				    
+ 002E  58			    pop ax
+ 002F  5E			    pop si
+ 0030  1F			    pop ds
+				    
+ 0031  C3			    ret
+				    
+ 0032				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 15:57:00
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0032	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0032	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+done . . . . . . . . . . . . . .	L Near	 0029	  CODES	
+letterc  . . . . . . . . . . . .	L Near	 000E	  CODES	
+next1  . . . . . . . . . . . . .	L Near	 002D	  CODES	
+next . . . . . . . . . . . . . .	L Near	 001F	  CODES	
+ok . . . . . . . . . . . . . . .	L Near	 0025	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 0013	  CODES	
+
+	   0 Warnings
+	   0 Errors

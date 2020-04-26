@@ -1,0 +1,324 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/15/20 09:10:46
+tempfile.asm						     Page 1 - 1
+
+
+				;程序可实现输入1位到8位之间任意位16进制数并显示
+				;程序设计到多个子程序:change,lbyte,dwtoc,divdw,show_str
+				;change子程序实现输入16进制字符串转换为16进制数
+				;lbyte子程序实现两个输入字符存到一个字节单元
+				;dwtoc通过除10取余将16进制数转换为对应10进制数ASCII码值
+				;divdw实现32位(双字型)除法
+				;show_str子程序实现显示以0结尾的字符串
+
+				;定义一个缓冲区，存放输入的十六进制字符串
+ 0000				data segment
+ 0000 64				buf db 100
+ 0001  00					db ?
+ 0002  0064 [					db 100 dup(0)
+        00
+       ]
+ 0066 0D 0A 50 6C 65 61			infon db 0dh,0ah,'Please enter hexadecimal digits:$'
+       73 65 20 65 6E 74
+       65 72 20 68 65 78
+       61 64 65 63 69 6D
+       61 6C 20 64 69 67
+       69 74 73 3A 24
+ 0089				data ends
+
+ 0000				datas segment
+ 0000  0080 [				db 128 dup(0)
+        00
+       ]
+ 0080				datas ends
+
+ 0000				show segment
+ 0000  0080 [				db 128 dup(0)
+        00
+       ]
+ 0080				show ends
+
+ 0000				code segment
+					assume cs:code,ds:data
+ 0000				start:
+					;用int21h的10号功能调用实现输入一个字符串并存到内存缓冲区data
+ 0000  B8 ---- R			mov ax,data
+ 0003  8E D8				mov ds,ax
+					
+ 0005  8D 16 0066 R			lea dx,infon;在屏幕上显示提示信息
+ 0009  B4 09				mov ah,9
+ 000B  CD 21				int 21h;将infon开始的字符串输出到屏幕
+					
+ 000D  8D 16 0000 R			lea dx,buf;从键盘输入一个十六进制数
+ 0011  B4 0A				mov ah,10
+ 0013  CD 21				int 21h 
+					
+ 0015  8D 36 0002 R			lea si,buf+2
+ 0019  8A 0E 0001 R			mov cl,[buf+1];注意[buf+1]是一个字节单元
+ 001D  B5 00				mov ch,0;cx存放输入的十六进制位数
+ 001F				a:
+ 001F  51				push cx;保护cx
+ 0020  8A 04				mov al,ds:[si]
+ 0022  E8 010D				call change;调用change子程序将输入的字符转化为十六进制数字
+ 0025  88 04				mov ds:[si],al;将转换后的数字存回原内存字节单元
+ 0027  46				inc si
+ 0028  59				pop cx;恢复cx,实现cx自减
+ 0029  E2 F4			loop a
+					;实现将十六进制数字存放到show段
+					;实现高位数字存放在高地址单元，低位数字存放在低地址单元
+ 002B  BB ---- R			mov bx,show
+ 002E  8E C3				mov es,bx
+ 0030  BF 0000				mov di,0;es:di指向show段
+ 0033  8D 36 0001 R			lea si,buf+1 
+ 0037  A0 0001 R			mov al,[buf+1]
+ 003A  B4 00				mov ah,0
+ 003C  03 F0				add si,ax;ds:si指向缓冲区字符串最后一位存放处
+ 003E  8A 0E 0001 R			mov cl,[buf+1];设置传输长度
+ 0042  B5 00				mov ch,0
+ 0044				chuanshu:
+ 0044  8A 04				mov al,ds:[si]
+ 0046  26: 88 05			mov es:[di],al
+ 0049  4E				dec si
+ 004A  47				inc di
+ 004B  E2 F7				loop chuanshu 
+					
+				    ;若输入数字位数未满8位，高位空位补0
+ 004D  B9 0008				mov cx,8
+ 0050  A0 0001 R			mov al,[buf+1]
+ 0053  B4 00				mov ah,0
+ 0055  2B C8				sub cx,ax;未满8位的位数
+ 0057				chuanshu1:
+ 0057  B0 00				mov al,0
+ 0059  26: 88 05			mov es:[di],al
+ 005C  47				inc di
+ 005D  E2 F8				loop chuanshu1
+					;至此十六进制数字所有位数存放到show段中
+					;由于每个位上的数字存放一个字节单元，需把两个合到一起
+					
+ 005F  8C C3				mov bx,es
+ 0061  8E DB				mov ds,bx
+ 0063  33 F6				xor si,si
+ 0065  E8 00F6				call lbyte;调用lbyte子程序实现两个数字合到一个字节单元
+ 0068  A1 0000				mov ax,ds:[0]
+ 006B  8B 16 0002			mov dx,ds:[2]
+					
+ 006F  BB ---- R			MOV bx,DATAS
+ 0072  8E DB			    MOV ds,bx
+ 0074  BB ---- R		    mov bx,show
+ 0077  8E C3			    mov es,bx
+ 0079  B9 000A			    mov cx,0ah
+ 007C  E8 000A			    call dwtoc
+				    ;调用dwtoc子程序将dx，ax中的十六进制数转化为十进制数对应的ASCII码值
+				    
+ 007F  B1 02			    mov cl,2
+ 0081  E8 007D			    call show_str;调用show_str子程序显示十进制数
+				    
+ 0084  B8 4C00				done:mov ax,4c00h
+ 0087  CD 21				int 21h
+					
+ 0089					dwtoc:
+ 0089  50				push ax
+ 008A  53				push bx
+ 008B  51				push cx
+ 008C  1E				push ds
+ 008D  33 F6				xor si,si
+ 008F  33 FF				xor di,di
+ 0091					s:
+ 0091  E8 0046				call divdw;调用divdw子程序将dx，ax十六进制数除10取余
+ 0094  8B 1E 0004			mov bx,ds:[4];bx记录每一次除10的余数
+ 0098  83 C3 30				add bx,30h;转化为十进制数对应ASCII码值
+ 009B  26: 89 1C			mov es:[si],bx
+ 009E  47				inc di			;设置di记录数据有多少位
+ 009F  A1 0000				mov ax,ds:[0]	;注意循环调用calldiw时候必须预先处理好ax，dx，即将上一次取余后的商存好
+ 00A2  8B 16 0002			mov dx,ds:[2]
+ 00A6  83 C6 02				add si,2
+ 00A9  83 FA 00				cmp dx,0		;最后结束标志ax，dx中存放数据都为0
+ 00AC  74 05				je next;(dx)为0继续判断(ax)是否为0
+ 00AE  EA ---- 0091 R			jmp far ptr s;(dx)不为0则继续进行除10取余
+ 00B3					next:
+ 00B3  83 F8 00				cmp ax,0
+ 00B6  74 05				je ok1;(ax)为0则结束，跳出循环
+ 00B8  EA ---- 0091 R			jmp far ptr s;(ax)不为0则继续进行除10取余
+					
+ 00BD					ok1:
+ 00BD  33 F6				xor si,si;实现将show段的数据逆序放到ds段中
+ 00BF  8B CF				mov cx,di;di记录的十进制位数存到cx中
+ 00C1  4F				dec di;由于位数最后跳出前多加了1，所以减去1
+ 00C2  03 FF				add di,di;es:di指向show段最后一个内存字单元
+ 00C4					s1:
+ 00C4  26: 8B 05			mov ax,es:[di]
+ 00C7  89 04				mov ds:[si],ax;ds:si指向datas段
+ 00C9  83 EF 02				sub di,2;传输的是一个字单元，循环自减为2
+ 00CC  83 C6 02				add si,2
+ 00CF  E2 F3				loop s1
+					
+ 00D1  33 C0				xor ax,ax;在十进制数字符串后存放0
+ 00D3  89 04				mov ds:[si],ax
+					
+ 00D5  1F				pop ds
+ 00D6  59				pop cx
+ 00D7  5B				pop bx
+ 00D8  58				pop ax
+ 00D9  C3				ret
+					
+ 00DA				    divdw:
+ 00DA  1E			    push ds
+ 00DB  52			    push dx
+ 00DC  51			    push cx
+ 00DD  50			    push ax
+				    
+ 00DE  8B C2			    mov ax,dx	;先求高16位除以除数的结果，ax存放商，dx存放余数
+ 00E0  33 D2			    xor dx,dx
+ 00E2  F7 F1			    div cx
+ 00E4  52			    push dx
+				    			;将余数保存下来
+ 00E5  8B D0			    mov dx,ax
+ 00E7  33 C0			    xor ax,ax
+ 00E9  A3 0000			    mov ds:[0],ax
+ 00EC  89 16 0002		    mov ds:[2],dx;将高16位的除法结果保存在高地址字单元中
+				    
+ 00F0  5A			    pop dx		;弹出高16位除法结果的余数
+ 00F1  58			    pop ax		;将被除数的低16位取出来
+ 00F2  50			    push ax		;恢复栈顶，维持push和pop平衡
+ 00F3  F7 F1			    div cx		;此时dx存放高16位除法的余数，ax存放被除数低16位
+				    			;最后结果ax存放商，dx存放余数
+				    			
+ 00F5  A3 0000			    mov ds:[0],ax;将低16位的除法结果商放在低地址字单元
+ 00F8  89 16 0004		    mov ds:[4],dx;最后的余数放在ds:[4]字单元中
+				    ;最后结果的低16位在ds:[0],高16位在ds:[2],余数在ds:[4]
+ 00FC  58			    pop ax
+ 00FD  59			    pop cx
+ 00FE  5A			    pop dx
+ 00FF  1F			    pop ds
+ 0100  C3			    ret
+				    ;显示一个十进制数字以0结尾的字符串
+ 0101				    show_str:
+ 0101  06			   	push es
+ 0102  51			   	push cx
+ 0103  50			   	push ax
+ 0104  56			   	push si
+ 0105  1E			   	push ds
+ 0106  53			   	push bx
+				   	
+ 0107  BB B800			   	mov bx,0b800h
+ 010A  8E C3			   	mov es,bx;指向显示缓冲区中间
+ 010C  BE 07D0			   	mov si,160*12+40*2
+ 010F  8A D1			   	mov dl,cl
+ 0111  33 FF			   	xor di,di
+				   	
+ 0113  8A 05			   	s0:mov al,ds:[di]		;注意是对字节单元进行存储
+ 0115  26: 88 04		   	mov es:[si],al
+ 0118  26: 88 54 01		   	mov es:[si+1],dl
+ 011C  83 C6 02			   	add si,2
+ 011F  83 C7 02			   	add di,2					
+				   	;实际上十进制每位上的数小于10
+				   	;所以在内存单元存放时只放在子单元的低地址字节单元
+				   	;因此di递增2，而不是递增1
+ 0122  3C 00			   	cmp al,0;判断是否为0(即字符串是否结束)
+ 0124  77 03 E9 FF5B			jna done
+ 0129  EB E8			   	jmp short s0
+				   	
+ 012B  5B			   	pop bx
+ 012C  1F			   	pop ds
+ 012D  5E			   	pop si
+ 012E  58			   	pop ax
+ 012F  59			   	pop cx
+ 0130  07			   	pop es
+ 0131  C3			   	ret
+				   	;将输入的十六进制字符转换为对应的十六进制数
+ 0132				   	change:
+ 0132  53				push bx
+ 0133  06				push es
+					
+ 0134  3C 30				cmp al,'0'
+ 0136  72 22				jb ok
+ 0138  3C 39				cmp al,'9';判断是否为数字字符'0'到'9'
+ 013A  76 12				jna next1
+ 013C  3C 41				cmp al,'A'
+ 013E  72 1A				jb ok
+ 0140  3C 46				cmp al,'F';判断是否为大写字母字符'A'到'F'
+ 0142  76 0E				jna next2
+ 0144  3C 61				cmp al,'a'
+ 0146  72 12				jb ok
+ 0148  3C 66				cmp al,'f';判断是否为小写字母字符'a'到'f'
+ 014A  76 0A				jna next3
+ 014C  EB 0C				jmp short ok
+					
+ 014E					next1:
+ 014E  2C 30				sub al,30h;若为数字字符则减去30H
+ 0150  EB 08				jmp short ok
+ 0152					next2:
+ 0152  2C 37				sub al,37h;若为大写字母字符则减去37H
+ 0154  EB 04				jmp short ok
+ 0156					next3:
+ 0156  2C 57				sub al,57h;若为小写字母字符则减去57H
+ 0158  EB 00				jmp short ok
+ 015A  90				ok:nop
+ 015B  07				pop es
+ 015C  5B				pop bx
+ 015D  C3				ret
+					
+ 015E					lbyte:
+ 015E  33 FF				xor di,di
+ 0160  B9 0004				mov cx,4;循环四次
+ 0163					s4:
+ 0163  51				push cx;保护cx
+ 0164  8A 04				mov al,ds:[si]
+ 0166  8A 5C 01				mov bl,ds:[si+1]
+ 0169  B1 04				mov cl,4
+ 016B  D2 E3				shl bl,cl;取得一个字节单元高位十六进制数
+ 016D  02 D8				add bl,al;加上一个字节单元低位十六进制数，从而合并两个一位十六进制数
+ 016F  88 1D				mov ds:[di],bl;将合并后的十六进数存到show段
+ 0171  47				inc di;合并后的十六进制数占一个字节，di自增1
+ 0172  83 C6 02				add si,2;si自增2
+ 0175  59				pop cx;恢复cx
+ 0176  E2 EB				loop s4
+ 0178  C3				ret
+ 0179				code ends
+					end start
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/15/20 09:10:46
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+code . . . . . . . . . . . . . .	16 Bit	 0179	  Para	  Private 
+datas  . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+data . . . . . . . . . . . . . .	16 Bit	 0089	  Para	  Private 
+show . . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+a  . . . . . . . . . . . . . . .	L Near	 001F	  code	
+buf  . . . . . . . . . . . . . .	Byte	 0000	  data	
+change . . . . . . . . . . . . .	L Near	 0132	  code	
+chuanshu1  . . . . . . . . . . .	L Near	 0057	  code	
+chuanshu . . . . . . . . . . . .	L Near	 0044	  code	
+divdw  . . . . . . . . . . . . .	L Near	 00DA	  code	
+done . . . . . . . . . . . . . .	L Near	 0084	  code	
+dwtoc  . . . . . . . . . . . . .	L Near	 0089	  code	
+infon  . . . . . . . . . . . . .	Byte	 0066	  data	
+lbyte  . . . . . . . . . . . . .	L Near	 015E	  code	
+next1  . . . . . . . . . . . . .	L Near	 014E	  code	
+next2  . . . . . . . . . . . . .	L Near	 0152	  code	
+next3  . . . . . . . . . . . . .	L Near	 0156	  code	
+next . . . . . . . . . . . . . .	L Near	 00B3	  code	
+ok1  . . . . . . . . . . . . . .	L Near	 00BD	  code	
+ok . . . . . . . . . . . . . . .	L Near	 015A	  code	
+s0 . . . . . . . . . . . . . . .	L Near	 0113	  code	
+s1 . . . . . . . . . . . . . . .	L Near	 00C4	  code	
+s4 . . . . . . . . . . . . . . .	L Near	 0163	  code	
+show_str . . . . . . . . . . . .	L Near	 0101	  code	
+start  . . . . . . . . . . . . .	L Near	 0000	  code	
+s  . . . . . . . . . . . . . . .	L Near	 0091	  code	
+
+	   0 Warnings
+	   0 Errors

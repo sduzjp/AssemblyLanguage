@@ -1,0 +1,41 @@
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 21:18:26
+tempfile.asm						     Page 1 - 1
+
+
+ 0000				DATAS SEGMENT
+ 0000  75 6E 49 58		    db 'unIX'
+ 0004  66 6F 52 4B		    db 'foRK'  
+ 0008				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  B0 61			    MOV Al,'a'
+ 0002  B3 62			    MOV bl,'b'
+				    
+ 0004  B4 4C			    MOV AH,4CH
+ 0006  CD 21			    INT 21H
+ 0008				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 21:18:26
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0008	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0008	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+
+	   0 Warnings
+	   0 Errors

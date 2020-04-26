@@ -1,0 +1,77 @@
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 22:28:28
+tempfile.asm						     Page 1 - 1
+
+
+ 0000				DATAS SEGMENT
+ 0000  31 2E 20 64 69 73	    db '1. display      '
+       70 6C 61 79 20 20
+       20 20 20 20
+ 0010  32 2E 20 62 72 6F	    db '2. brows        '
+       77 73 20 20 20 20
+       20 20 20 20
+ 0020  33 2E 20 72 65 70	    db '3. replace      '
+       6C 61 63 65 20 20
+       20 20 20 20
+ 0030  34 2E 20 6D 6F 64	    db '4. modify       '
+       69 66 79 20 20 20
+       20 20 20 20
+				    
+ 0040				DATAS ENDS
+
+ 0000				STACKS SEGMENT
+ 0000  0000 0000 0000		    dw 0,0,0,0,0,0,0,0
+       0000 0000 0000
+       0000 0000
+ 0010				STACKS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS,SS:STACKS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,DATAS
+ 0003  8E D8			    MOV DS,AX
+ 0005  B8 ---- R		    mov ax,stacks
+ 0008  8E D0			    mov ss,ax
+ 000A  BC 0010			    mov sp,10h
+ 000D  BB 0000			    mov bx,0
+ 0010  B9 0004			    mov cx,4
+ 0013  51			    s0:push cx
+ 0014  BE 0000			    mov si,0
+ 0017  B9 0004			    mov cx,4
+ 001A  8A 40 03			    s:mov al,[si][bx+3]
+ 001D  24 DF			    and al,11011111b
+ 001F  88 40 03			    mov [si+bx+3],al
+ 0022  46			    inc si
+ 0023  E2 F5			    loop s
+				    
+ 0025  83 C3 10			    add bx,16
+ 0028  59			    pop cx
+ 0029  E2 E8			    loop s0
+ 002B  B4 4C			    MOV AH,4CH
+ 002D  CD 21			    INT 21H
+ 002F				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 22:28:28
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 002F	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0040	  Para	  Private 
+STACKS . . . . . . . . . . . . .	16 Bit	 0010	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+s0 . . . . . . . . . . . . . . .	L Near	 0013	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 001A	  CODES	
+
+	   0 Warnings
+	   0 Errors

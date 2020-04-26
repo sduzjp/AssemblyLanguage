@@ -1,0 +1,64 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/16/20 08:06:55
+tempfile.asm						     Page 1 - 1
+
+
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+ 0000  B0 3E			    MOV Al,3eh;向al寄存器中写入一个两位十六进制数
+ 0002  8A D8			    MOV bl,al ;保存al中的值
+ 0004  8A D0			    mov dl,al ;将al中数写入dl寄存器中
+				    		  ;之后将每位数保存成ASCII码对应的十进制数
+				    		  ;最后通过执行程序显示数
+ 0006  B1 04			    mov cl,4  ;设置dl中数据右移位数
+ 0008  D2 EA			    shr dl,cl ;先操作al中数的高位，一位一位显示ASCII码字符
+				 
+ 000A  80 FA 09			    cmp dl,9  ;判断dl中数是否小于等于9,
+				    		  ;若满足条件，则直接加30H变成ASCII码对应的十进制数
+				    		  ;不满足，则加7之后再加30H变成ASCII码对应的十进制数
+				    
+ 000D  76 03			    jbe next1
+ 000F  80 C2 07			    add dl,7
+ 0012  80 C2 30			    next1:add dl,30h
+ 0015  B4 02			    mov ah,2
+ 0017  CD 21			    int 21h			;显示al中高位数ASCII码
+ 0019  8A D3			    mov dl,bl		;恢复al值
+ 001B  80 E2 0F			    and dl,0fh		;dl中保存低位数，按照处理高位方法继续显示低位
+ 001E  80 FA 09			    cmp dl,9
+ 0021  76 03			    jbe next2
+ 0023  80 C2 07			    add dl,7
+				    
+ 0026  80 C2 30			    next2:add dl,30h
+ 0029  B4 02			    mov ah,2
+ 002B  CD 21			    int 21h			;显示al中低位数ASCII码
+				    
+ 002D  B4 4C			    mov ah,4ch
+ 002F  CD 21			    int 21h
+ 0031				CODES ENDS
+				    END START
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/16/20 08:06:55
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0031	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+next1  . . . . . . . . . . . . .	L Near	 0012	  CODES	
+next2  . . . . . . . . . . . . .	L Near	 0026	  CODES	
+
+	   0 Warnings
+	   0 Errors

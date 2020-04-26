@@ -1,0 +1,48 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 20:31:03
+tempfile.asm						     Page 1 - 1
+
+
+				;BIOS中断例程应用
+				;在屏幕的5行12列显示3个红底高亮闪烁绿色的'a'
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+ 0000  B4 02			    mov ah,2;置光标
+ 0002  B7 00			    mov bh,0;表示第0页
+ 0004  B6 05			    mov dh,5;表示第5行
+ 0006  B2 0C			    mov dl,12;表示第12列
+ 0008  CD 10			    int 10h  ;调用int 10h中断例程中2号子程序
+				    
+ 000A  B4 09			    mov ah,9;在光标位置显示字符
+ 000C  B0 61			    mov al,'a';al中存放字符
+ 000E  B3 CA			    mov bl,11001010b;bl中存放颜色属性，11001010属于红底高亮闪烁绿色
+ 0010  B7 00			    mov  bh,0;第0页
+ 0012  B9 0003			    mov cx,3;字符重复的个数
+ 0015  CD 10			    int 10h;调用int 10h中断例程的9号子程序
+				    
+ 0017  B4 4C			    MOV AH,4CH
+ 0019  CD 21			    INT 21H
+ 001B				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 20:31:03
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 001B	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+
+	   0 Warnings
+	   0 Errors

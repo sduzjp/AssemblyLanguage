@@ -1,0 +1,186 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 23:23:16
+tempfile.asm						     Page 1 - 1
+
+
+				;端口的访问
+				;CMOS RAM中存储的时间信息
+				;编程，在屏幕中间显示以“年/月/日 时：分：秒”的格式显示当前日期、时间
+				;年、月、日、时、分、秒的数据都是一个字节
+				;程序存在改进地方：
+				;(1)年月日和时分秒存放到data段的循环问题
+				;(2)最后送入显示缓冲区时数据以及'/',':'字符循环问题
+ 0000				data segment
+ 0000  0010 [				db 16 dup (0)
+        00
+       ]
+ 0010				data ends
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+ 0000  BB ---- R			mov bx,data
+ 0003  8E DB			    mov ds,bx
+ 0005  33 F6			    xor si,si
+				    ;实现年、月、日存放到data段
+ 0007  B2 09			    mov dl,9
+ 0009  B9 0003				mov cx,3
+ 000C					s:
+ 000C  51				push cx
+ 000D  8A C2			    mov al,dl
+ 000F  E6 70			    out 70h,al;向70h端口写入al
+ 0011  E4 71			    in al,71h;从71h端口读入(al)号单元的字节型数据
+				    
+ 0013  8A E0			    mov ah,al;将该字节型数据分别两个BCD码
+ 0015  B1 04			    mov cl,4;注意当移动位数大于1时，将移动位数存放在cl中
+ 0017  D2 EC			    shr ah,cl;字节的高四位BCD码
+ 0019  24 0F			    and al,00001111b;字节的低四位BCD码
+				    
+ 001B  80 C4 30			    add ah,30h;分别将两BCD码代表的十进制数转换成对应的ASCII码值
+ 001E  04 30			    add al,30h
+
+ 0020  88 24			    mov byte ptr ds:[si],ah
+ 0022  88 44 01			    mov byte ptr ds:[si+1],al
+ 0025  83 C6 02			    add si,2
+ 0028  FE CA			    dec dl
+ 002A  59			    pop cx
+ 002B  E2 DF			    loop s
+				    
+ 002D  BE 0006			    mov si,6
+ 0030  B2 04			    mov dl,4
+ 0032  B9 0003			    mov cx,3
+ 0035				    s0:
+ 0035  51			    push cx
+ 0036  8A C2			    mov al,dl
+ 0038  E6 70			    out 70h,al;向70h端口写入al
+ 003A  E4 71			    in al,71h;从71h端口读入(al)号单元的字节型数据
+				    
+ 003C  8A E0			    mov ah,al;将该字节型数据分别两个BCD码
+ 003E  B1 04			    mov cl,4;注意当移动位数大于1时，将移动位数存放在cl中
+ 0040  D2 EC			    shr ah,cl;字节的高四位BCD码
+ 0042  24 0F			    and al,00001111b;字节的低四位BCD码
+				    
+ 0044  80 C4 30			    add ah,30h;分别将两BCD码代表的十进制数转换成对应的ASCII码值
+ 0047  04 30			    add al,30h
+
+ 0049  88 24			    mov ds:[si],ah
+ 004B  88 44 01			    mov ds:[si+1],al
+ 004E  83 C6 02			    add si,2
+ 0051  80 EA 02			    sub dl,2
+ 0054  59			    pop cx
+ 0055  E2 DE			    loop s0
+				    
+				    ;送入显示缓冲区
+ 0057  BB B800			    mov bx,0b800h
+ 005A  8E C3			    mov es,bx
+ 005C  33 F6			    xor si,si
+ 005E  33 FF			    xor di,di
+ 0060  BB 07BC			    mov bx,160*12+30*2
+ 0063  B2 02			    mov dl,2
+ 0065  B9 0002			    mov cx,2
+ 0068				    s1:
+ 0068  8A 04			    mov al,ds:[si]
+ 006A  26: 88 01		    mov es:[bx+di],al
+ 006D  26: 88 51 01		    mov es:[bx+di+1],dl
+ 0071  46			    inc si
+ 0072  83 C7 02			    add di,2
+ 0075  E2 F1			    loop s1
+ 0077  B0 2F			    mov al,47
+ 0079  26: 88 47 04		    mov es:[bx+4],al
+ 007D  26: 88 57 05		    mov es:[bx+5],dl
+				    
+ 0081  BF 0006			    mov di,6
+ 0084  B9 0002			    mov cx,2
+ 0087				    s2:
+ 0087  8A 04			    mov al,ds:[si]
+ 0089  26: 88 01		    mov es:[bx+di],al
+ 008C  26: 88 51 01		    mov es:[bx+di+1],dl
+ 0090  46			    inc si
+ 0091  83 C7 02			    add di,2
+ 0094  E2 F1			    loop s2
+ 0096  B0 2F			    mov al,47
+ 0098  26: 88 47 0A		    mov es:[bx+10],al
+ 009C  26: 88 57 0B		    mov es:[bx+11],dl
+				    
+ 00A0  BF 000C			    mov di,12
+ 00A3  B9 0002			    mov cx,2
+ 00A6				    s3:
+ 00A6  8A 04			    mov al,ds:[si]
+ 00A8  26: 88 01		    mov es:[bx+di],al
+ 00AB  26: 88 51 01		    mov es:[bx+di+1],dl
+ 00AF  46			    inc si
+ 00B0  83 C7 02			    add di,2
+ 00B3  E2 F1			    loop s3
+ 00B5  B0 20			    mov al,32
+ 00B7  26: 88 47 10		    mov es:[bx+16],al
+ 00BB  26: 88 57 11		    mov es:[bx+17],dl
+				    
+ 00BF  BF 0012			    mov di,18
+ 00C2  B9 0002			    mov cx,2
+ 00C5				    s4:
+ 00C5  8A 04			    mov al,ds:[si]
+ 00C7  26: 88 01		    mov es:[bx+di],al
+ 00CA  26: 88 51 01		    mov es:[bx+di+1],dl
+ 00CE  46			    inc si
+ 00CF  83 C7 02			    add di,2
+ 00D2  E2 F1			    loop s4
+ 00D4  B0 3A			    mov al,58
+ 00D6  26: 88 47 16		    mov es:[bx+22],al
+ 00DA  26: 88 57 17		    mov es:[bx+23],dl
+				    
+ 00DE  BF 0018			    mov di,24
+ 00E1  B9 0002			    mov cx,2
+ 00E4				    s5:
+ 00E4  8A 04			    mov al,ds:[si]
+ 00E6  26: 88 01		    mov es:[bx+di],al
+ 00E9  26: 88 51 01		    mov es:[bx+di+1],dl
+ 00ED  46			    inc si
+ 00EE  83 C7 02			    add di,2
+ 00F1  E2 F1			    loop s5
+ 00F3  B0 3A			    mov al,58
+ 00F5  26: 88 47 1C		    mov es:[bx+28],al
+ 00F9  26: 88 57 1D		    mov es:[bx+29],dl
+				    
+ 00FD  BF 001E			    mov di,30
+ 0100  B9 0002			    mov cx,2
+ 0103				    s6:
+ 0103  8A 04			    mov al,ds:[si]
+ 0105  26: 88 01		    mov es:[bx+di],al
+ 0108  26: 88 51 01		    mov es:[bx+di+1],dl
+ 010C  46			    inc si
+ 010D  83 C7 02			    add di,2
+ 0110  E2 F1			    loop s6
+
+ 0112  B4 4C			    MOV AH,4CH
+ 0114  CD 21			    INT 21H
+ 0116				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 23:23:16
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0116	  Para	  Private 
+data . . . . . . . . . . . . . .	16 Bit	 0010	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+s0 . . . . . . . . . . . . . . .	L Near	 0035	  CODES	
+s1 . . . . . . . . . . . . . . .	L Near	 0068	  CODES	
+s2 . . . . . . . . . . . . . . .	L Near	 0087	  CODES	
+s3 . . . . . . . . . . . . . . .	L Near	 00A6	  CODES	
+s4 . . . . . . . . . . . . . . .	L Near	 00C5	  CODES	
+s5 . . . . . . . . . . . . . . .	L Near	 00E4	  CODES	
+s6 . . . . . . . . . . . . . . .	L Near	 0103	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 000C	  CODES	
+
+	   0 Warnings
+	   0 Errors

@@ -1,0 +1,159 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 09:13:20
+tempfile.asm						     Page 1 - 1
+
+
+				;端口的访问
+				;CMOS RAM中存储的时间信息
+				;编程，在屏幕中间显示以“年/月/日 时：分：秒”的格式显示当前日期、时间
+				;年、月、日、时、分、秒的数据都是一个字节
+				;改进程序
+ 0000				data segment
+ 0000  0010 [				db 16 dup (0)
+        00
+       ]
+ 0010				data ends
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+ 0000  BB ---- R			mov bx,data
+ 0003  8E DB			    mov ds,bx
+ 0005  33 F6			    xor si,si
+				    ;实现年、月、日存放到data段
+ 0007  B2 09			    mov dl,9
+ 0009  B9 0003			    mov cx,3
+ 000C				    s:
+ 000C  8A C2			    mov al,dl
+ 000E  E8 0062			    call read
+ 0011  FE CA			    dec dl
+ 0013  E2 F7				loop s
+					
+					;实现时分秒存放到data段
+ 0015  B2 04				mov dl,4
+ 0017  B9 0003				mov cx,3
+ 001A					s0:
+ 001A  8A C2				mov al,dl
+ 001C  E8 0054				call read
+ 001F  80 EA 02				sub dl,2
+ 0022  E2 F6				loop s0
+
+				    ;送入显示缓冲区
+ 0024  BB B800			    mov bx,0b800h
+ 0027  8E C3			    mov es,bx
+ 0029  33 F6			    xor si,si
+ 002B  33 FF			    xor di,di
+ 002D  BB 07BC			    mov bx,160*12+30*2
+				    ;实现将日期、事件的数字送入显示缓冲区
+ 0030  B2 02			    mov dl,2
+ 0032  B9 0006			    mov cx,6
+ 0035				    s3:
+ 0035  E8 0059			    call show_number
+ 0038  83 C7 02			    add di,2;注意这里只需要将di递增2，因为调用子程序时循环结束后es:di已经指向下一个显示字节单元
+ 003B  E2 F8			    loop s3
+				    
+				    ;实现将两个'/'送个年月日三个数据中间分隔
+ 003D  B9 0002			    mov cx,2
+ 0040  BE 0004			    mov si,4
+ 0043  B0 2F			    mov al,47
+ 0045				    s4:
+ 0045  26: 88 00		    mov es:[bx+si],al
+ 0048  26: 88 50 01		    mov es:[bx+si+1],dl
+ 004C  83 C6 06			    add si,6
+ 004F  E2 F4			    loop s4
+				    
+				    ;实现将空格送入日期和时间中间分隔
+ 0051  B0 20			    mov al,32
+ 0053  26: 88 47 10		    mov es:[bx+16],al
+ 0057  26: 88 57 11		    mov es:[bx+17],dl
+				    
+				    ;实现将两个':'送入时分秒的中间分隔
+ 005B  B9 0002			    mov cx,2
+ 005E  BE 0016			    mov si,22
+ 0061  B0 3A			    mov al,58
+ 0063				    s5: 
+ 0063  26: 88 00		    mov es:[bx+si],al
+ 0066  26: 88 50 01		    mov es:[bx+si+1],dl
+ 006A  83 C6 06			    add si,6
+ 006D  E2 F4			    loop s5
+				    
+ 006F  B4 4C			    MOV AH,4CH
+ 0071  CD 21			    INT 21H
+				    
+				    ;从端口读入子程序
+ 0073				    read:
+ 0073  1E				push ds
+ 0074  51				push cx
+					
+ 0075  E6 70			    out 70h,al;向70h端口写入al
+ 0077  E4 71			    in al,71h;从71h端口读入(al)号单元的字节型数据
+				    
+ 0079  8A E0			    mov ah,al;将该字节型数据分别两个BCD码
+ 007B  B1 04			    mov cl,4;注意当移动位数大于1时，将移动位数存放在cl中
+ 007D  D2 EC			    shr ah,cl;字节的高四位BCD码
+ 007F  24 0F			    and al,00001111b;字节的低四位BCD码
+				    
+ 0081  80 C4 30			    add ah,30h;分别将两BCD码代表的十进制数转换成对应的ASCII码值
+ 0084  04 30			    add al,30h
+
+ 0086  88 24			    mov byte ptr ds:[si],ah
+ 0088  88 44 01			    mov byte ptr ds:[si+1],al
+ 008B  83 C6 02			    add si,2
+				  	
+ 008E  59			  	pop cx
+ 008F  1F			  	pop ds
+ 0090  C3			    ret
+				    
+				    ;显示数字子程序
+ 0091				    show_number:
+ 0091  51			    push cx
+ 0092  53			    push bx
+ 0093  1E			    push ds
+ 0094  06			    push es
+				    
+ 0095  B9 0002			    mov cx,2
+ 0098				    s2:
+ 0098  8A 04			    mov al,ds:[si]
+ 009A  26: 88 01		    mov es:[bx+di],al
+ 009D  26: 88 51 01		    mov es:[bx+di+1],dl
+ 00A1  46			    inc si
+ 00A2  83 C7 02			    add di,2
+ 00A5  E2 F1			    loop s2
+				    
+ 00A7  07			    pop es
+ 00A8  1F			    pop ds
+ 00A9  5B			    pop bx
+ 00AA  59			    pop cx
+ 00AB  C3			    ret
+				    
+ 00AC				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 09:13:20
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 00AC	  Para	  Private 
+data . . . . . . . . . . . . . .	16 Bit	 0010	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+read . . . . . . . . . . . . . .	L Near	 0073	  CODES	
+s0 . . . . . . . . . . . . . . .	L Near	 001A	  CODES	
+s2 . . . . . . . . . . . . . . .	L Near	 0098	  CODES	
+s3 . . . . . . . . . . . . . . .	L Near	 0035	  CODES	
+s4 . . . . . . . . . . . . . . .	L Near	 0045	  CODES	
+s5 . . . . . . . . . . . . . . .	L Near	 0063	  CODES	
+show_number  . . . . . . . . . .	L Near	 0091	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 000C	  CODES	
+
+	   0 Warnings
+	   0 Errors

@@ -1,0 +1,143 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 10:23:48
+tempfile.asm						     Page 1 - 1
+
+
+				;外中断，编写int9中断例程
+				;在屏幕中间依次显示'a'到'z'，并且让人看清
+				;在显示的过程中，按下Esc键可以切换字体颜色
+				;要在DOS实模式下运行
+ 0000				DATAS SEGMENT
+ 0000  0000 0000		    dw 0,0;定义data段存放int9中断例程的原入口地址
+ 0004				DATAS ENDS
+
+ 0000				STACKS SEGMENT
+ 0000  0080 [			    db 128 dup (0);定义stack段存放标志寄存器
+        00
+       ]
+ 0080				STACKS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS,SS:STACKS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,stacks
+ 0003  8E D0			    mov ss,ax
+ 0005  BC 0080			    mov sp,128
+				    
+ 0008  B8 ---- R		    mov ax,datas
+ 000B  8E D8			    mov ds,ax
+				    
+ 000D  33 C0			    xor ax,ax
+ 000F  8E C0			    mov es,ax
+				    
+ 0011  26: FF 36 0024		    push es:[9*4]
+ 0016  8F 06 0000		    pop ds:[0];保存int9中断例程的原入口偏移地址
+ 001A  26: FF 36 0026		    push es:[9*4+2]
+ 001F  8F 06 0002		    pop ds:[2];保存int9中断例程的原入口段地址
+				    
+				    ;设置新int9中断例程的中断向量表
+ 0023  26: C7 06 0024		    mov word ptr es:[9*4],offset int9
+       0000
+ 002A  26: 8C 0E 0026		    mov word ptr es:[9*4+2],cs
+				    
+				    ;将字符送入显示缓冲区
+ 002F  B8 B800			    mov ax,0b800h
+ 0032  8E C0			    mov es,ax
+ 0034  B4 61			    mov ah,'a'
+ 0036				    s:
+ 0036  26: 88 26 07D0		    mov es:[160*12+40*2],ah
+ 003B  E8 0021			    call delay
+ 003E  FE C4			    inc ah
+ 0040  80 FC 7A			    cmp ah,'z'
+ 0043  76 F1			    jna s
+				    
+				    ;恢复原int9中断例程的入口地址，保证之后的程序调用int9的正确性
+				    
+ 0045  33 C0			    xor ax,ax
+ 0047  8E C0			    mov es,ax
+				    
+ 0049  FF 36 0000		    push ds:[0]
+ 004D  26: 8F 06 0024		    pop es:[9*4]
+ 0052  FF 36 0002		    push ds:[2]
+ 0056  26: 8F 06 0026		    pop es:[9*4+2]
+				    
+ 005B  B4 4C			    MOV AH,4CH
+ 005D  CD 21			    INT 21H
+				    
+ 005F				    delay:
+ 005F  50			    push ax
+ 0060  52			    push dx
+ 0061  BA 000F			    mov dx,000fh
+ 0064  33 C0			    xor ax,ax
+ 0066				    s1:
+ 0066  83 E8 01			    sub ax,1
+ 0069  83 DA 00			    sbb dx,0
+ 006C  83 F8 00			    cmp ax,0
+ 006F  75 F5			    jne s1
+ 0071  83 FA 00			    cmp dx,0
+ 0074  75 F0			    jne s1
+				    
+ 0076  5A			    pop dx
+ 0077  58			    pop ax
+ 0078  C3			    ret
+				    
+ 0079				    int9:
+ 0079  50			    push ax
+ 007A  53			    push bx
+ 007B  06			    push es
+				    
+ 007C  E4 60			    in al,60h
+				    
+ 007E  9C			    pushf;标志寄存器入栈
+				    ;对int指令进行模拟，调用原来的int9中断例程
+ 007F  9C			    pushf
+ 0080  5B			    pop bx
+ 0081  80 E7 FC			    and bh,11111100b
+ 0084  53			    push bx
+ 0085  9D			    popf
+ 0086  FF 1E 0000		    call dword ptr ds:[0]
+				    
+				    ;判断键盘输入扫描码是否为1，即是否键入Esc
+				    
+ 008A  3C 01			    cmp al,1
+ 008C  75 0A			    jne int9ret
+				    
+ 008E  B8 B800			    mov ax,0b800h
+ 0091  8E C0			    mov es,ax
+ 0093  26: FE 06 07D1		    inc byte ptr es:[160*12+40*2+1]
+				    
+ 0098				    int9ret:
+ 0098  07			    pop es
+ 0099  5B			    pop bx
+ 009A  58			    pop ax
+ 009B  CF			    iret
+				    
+ 009C				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 10:23:48
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 009C	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0004	  Para	  Private 
+STACKS . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+delay  . . . . . . . . . . . . .	L Near	 005F	  CODES	
+int9ret  . . . . . . . . . . . .	L Near	 0098	  CODES	
+int9 . . . . . . . . . . . . . .	L Near	 0079	  CODES	
+s1 . . . . . . . . . . . . . . .	L Near	 0066	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 0036	  CODES	
+
+	   0 Warnings
+	   0 Errors

@@ -1,0 +1,124 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/05/20 09:11:34
+tempfile.asm						     Page 1 - 1
+
+
+				;dtoc子程序将word型数据转变为表示十进制数的字符串
+				;show_str子程序显示以0结尾的字符串
+				;该程序需要进一步改进的地方，如果事先不知道ax数值位数
+				;如果有多个数值需要显示
+ 0000				DATAS SEGMENT
+ 0000  000A [			    db 10 dup (0) 
+        00
+       ]
+ 000A				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  BB ---- R		    MOV bx,DATAS
+ 0003  8E DB			    MOV DS,bx
+ 0005  B8 317A			    mov ax,12666
+ 0008  33 F6			    xor si,si
+ 000A  E8 000D			    call dtoc
+				    
+ 000D  B6 08			    mov dh,8
+ 000F  B2 03			    mov dl,3
+ 0011  B1 02			    mov cl,2
+ 0013  E8 002D			    call show_str
+				    
+ 0016  B4 4C			    MOV AH,4CH
+ 0018  CD 21			    INT 21H
+				    ;利用除10取余法依次将ax中各位数字提取出来
+				    ;然后加上30H变为对应的ASCII码数值存放
+				    ;注意存放的时候的顺序，由于取余时是从最后位开始
+				    ;所以存放时要将顺序反过来
+ 001A  50			    dtoc:push ax
+ 001B  51			    push cx
+ 001C  1E			    push ds
+ 001D  53			    push bx
+ 001E  52			    push dx
+ 001F  57			    push di
+				    
+ 0020  BF 0008			    mov di,8
+ 0023  B9 0005			    mov cx,5
+ 0026  BB 000A			    mov bx,10
+ 0029  33 D2			    s:xor dx,dx
+ 002B  F7 F3			    div bx
+ 002D  83 C2 30			    add dx,30h
+ 0030  89 15			    mov ds:[di],dx
+ 0032  83 EF 02			    sub di,2
+ 0035  E2 F2			    loop s
+				    
+ 0037  33 C0			    xor ax,ax
+ 0039  A3 000A			    mov ds:[10],ax
+ 003C  5F			    pop di
+ 003D  5A			    pop dx
+ 003E  5B			    pop bx
+ 003F  1F			    pop ds
+ 0040  59			    pop cx
+ 0041  58			    pop ax
+ 0042  C3			    ret
+				    
+ 0043				    show_str:
+ 0043  06			   	push es
+ 0044  51			   	push cx
+ 0045  50			   	push ax
+ 0046  56			   	push si
+ 0047  1E			   	push ds
+ 0048  53			   	push bx
+				   	
+				   	
+ 0049  BB B800			   	mov bx,0b800h
+ 004C  8E C3			   	mov es,bx
+ 004E  BB 0500			   	mov bx,500h
+ 0051  8A D1			   	mov dl,cl
+ 0053  BF 0000			   	mov di,0
+				   	
+ 0056  B9 0010			   	mov cx,16
+				   	
+ 0059  8A 05			   	s0:mov al,ds:[di]
+ 005B  26: 88 40 04		   	mov es:[bx+si+4],al
+ 005F  26: 88 50 05		   	mov es:[bx+si+5],dl
+ 0063  83 C6 02			   	add si,2
+ 0066  47			   	inc di
+ 0067  E2 F0			   	loop s0
+				   	
+				   	
+ 0069  5B			   	pop bx
+ 006A  1F			   	pop ds
+ 006B  5E			   	pop si
+ 006C  58			   	pop ax
+ 006D  59			   	pop cx
+ 006E  07			   	pop es
+ 006F  C3			   	ret
+				    
+
+ 0070				CODES ENDS
+				    END START
+
+Microsoft (R) Macro Assembler Version 6.11		    03/05/20 09:11:34
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0070	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 000A	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+dtoc . . . . . . . . . . . . . .	L Near	 001A	  CODES	
+s0 . . . . . . . . . . . . . . .	L Near	 0059	  CODES	
+show_str . . . . . . . . . . . .	L Near	 0043	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 0029	  CODES	
+
+	   0 Warnings
+	   0 Errors

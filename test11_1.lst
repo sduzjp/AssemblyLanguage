@@ -1,0 +1,108 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 15:18:05
+tempfile.asm						     Page 1 - 1
+
+
+				;利用串传送指令将data段第一个字符串
+				;复制到后面的空间
+ 0000				DATAS SEGMENT
+ 0000  77 65 6C 63 6F 6D	    db 'welcome to masm!'
+       65 20 74 6F 20 6D
+       61 73 6D 21
+ 0010  0010 [			    db 16 dup (0)  
+        00
+       ]
+ 0020				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,DATAS
+ 0003  8E D8			    MOV DS,AX
+ 0005  33 F6			    xor si,si;ds:si指向第一个字符串
+ 0007  8E C0			    mov es,ax
+ 0009  BF 0010			    mov di,16;ds:di指向后面首地址
+ 000C  B9 0010			    mov cx,16
+ 000F  FC			    cld
+ 0010  F3/ A4			    rep movsb
+				    
+ 0012  B6 08			    mov dh,8
+ 0014  B2 03			    mov dl,3
+ 0016  B1 02			    mov cl,2
+ 0018  E8 0012			    call show_str
+ 001B  B6 09			    mov dh,9
+ 001D  B2 03			    mov dl,3
+ 001F  B1 02			    mov cl,2
+ 0021  8C D8			    mov ax,ds
+ 0023  40			    inc ax
+ 0024  8E D8			    mov ds,ax
+ 0026  E8 0004			    call show_str
+				    
+ 0029  B4 4C			    MOV AH,4CH
+ 002B  CD 21			    INT 21H
+				    
+ 002D				    show_str:
+ 002D  06			   	push es
+ 002E  51			   	push cx
+ 002F  50			   	push ax
+ 0030  56			   	push si
+ 0031  1E			   	push ds
+ 0032  53			   	push bx
+				   	
+ 0033  BB B800			   	mov bx,0b800h
+ 0036  8E C3			   	mov es,bx
+ 0038  B0 A0			   	mov al,160
+ 003A  F6 E6			   	mul dh
+ 003C  8B D8			  	mov bx,ax
+ 003E  FE CA			   	dec dl
+ 0040  02 D2			   	add dl,dl
+ 0042  32 F6			   	xor dh,dh
+ 0044  03 DA			   	add bx,dx
+ 0046  8A D1			   	mov dl,cl
+ 0048  33 FF			   	xor di,di
+ 004A  33 F6			   	xor si,si
+				   	
+ 004C  B9 0010			   	mov cx,16
+				   	
+ 004F  8A 05			   	s:mov al,ds:[di]
+ 0051  26: 88 00		   	mov es:[bx+si],al
+ 0054  26: 88 50 01		   	mov es:[bx+si+1],dl
+ 0058  83 C6 02			   	add si,2
+ 005B  47			   	inc di
+ 005C  E2 F1			   	loop s
+				   	
+				   	
+ 005E  5B			   	pop bx
+ 005F  1F			   	pop ds
+ 0060  5E			   	pop si
+ 0061  58			   	pop ax
+ 0062  59			   	pop cx
+ 0063  07			   	pop es
+ 0064  C3			   	ret
+
+ 0065				CODES ENDS
+				    END START
+
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 15:18:05
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0065	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0020	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+show_str . . . . . . . . . . . .	L Near	 002D	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 004F	  CODES	
+
+	   0 Warnings
+	   0 Errors

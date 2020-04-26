@@ -1,0 +1,58 @@
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 21:22:34
+tempfile.asm						     Page 1 - 1
+
+
+ 0000				DATAS SEGMENT
+ 0000  42 61 53 69 43		    db 'BaSiC'
+ 0005  69 4E 66 4F 72 4D	    db 'iNfOrMaTiOn' 
+       61 54 69 4F 6E
+ 0010				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,DATAS
+ 0003  8E D8			    MOV DS,AX
+ 0005  BB 0000			    mov bx,0
+				    
+ 0008  B9 0005			    mov cx,5
+ 000B  8A 07			    s:mov al,[bx]
+ 000D  24 DF			    and al,11011111b
+ 000F  43			    inc bx
+ 0010  E2 F9			    loop s
+				    
+ 0012  BB 0005			    mov bx,5
+ 0015  B9 000B			    mov cx,11
+ 0018  8A 07			    s0:mov al,[bx]
+ 001A  0C 20			    or al,00100000b
+ 001C  43			    inc bx
+ 001D  E2 F9			    loop s0
+				    
+ 001F  B4 4C			    MOV AH,4CH
+ 0021  CD 21			    INT 21H
+ 0023				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 21:22:34
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0023	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0010	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+s0 . . . . . . . . . . . . . . .	L Near	 0018	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 000B	  CODES	
+
+	   0 Warnings
+	   0 Errors

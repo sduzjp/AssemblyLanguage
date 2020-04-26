@@ -1,0 +1,64 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/10/20 17:01:42
+tempfile.asm						     Page 1 - 1
+
+
+ 0000				DATAS SEGMENT
+				    ;此处输入数据段代码  
+ 0000				DATAS ENDS
+
+ 0000				STACKS SEGMENT
+				    ;此处输入堆栈段代码
+ 0000				STACKS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS,SS:STACKS
+ 0000				START:
+					
+ 0000  B4 00			    MOV ah,0
+ 0002  CD 1A			    int 1ah;调用第1ah的0子程序，读取始终滴答计数
+				    
+ 0004  8B C2			    mov ax,dx;将产生的随机数存入ax
+ 0006  83 E0 0F			    and ax,15;进行与运算得到低4位,(ah)=0
+ 0009  B2 0A			    mov dl,10
+ 000B  F6 F2			    div dl;除10后,ah中存放余数,al中存放商.余数就是随机十进制数
+ 000D  B2 02			    mov dl,2;设置字符颜色
+ 000F  80 FC 00			    cmp ah,0;判断随机数是否为0
+ 0012  74 02			    jz next;若为0则增1改为显示随机数1
+ 0014  EB 03			    jmp short next1
+ 0016				next:
+ 0016  80 C4 01				add ah,1
+ 0019				next1:
+ 0019  80 C4 30			    add ah,30h;将十进制随机数转换为对应ASCII码值
+ 001C  BB B800			    mov bx,0b800h
+ 001F  8E C3			    mov es,bx
+ 0021  26: 88 26 07D0		    mov es:[160*12+40*2],ah
+ 0026  26: 88 16 07D1		    mov es:[160*12+40*2+1],dl;在屏幕中间显示随机数
+ 002B  B4 4C			    MOV AH,4CH
+ 002D  CD 21			    INT 21H
+ 002F				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    03/10/20 17:01:42
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 002F	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0000	  Para	  Private 
+STACKS . . . . . . . . . . . . .	16 Bit	 0000	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+next1  . . . . . . . . . . . . .	L Near	 0019	  CODES	
+next . . . . . . . . . . . . . .	L Near	 0016	  CODES	
+
+	   0 Warnings
+	   0 Errors

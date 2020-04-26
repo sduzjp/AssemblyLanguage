@@ -1,0 +1,36 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 17:17:33
+tempfile.asm						     Page 1 - 1
+
+
+				;ÖÐ¶ÏÀý³Ìint0
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+ 0000  B8 B800			    MOV AX,0b800h
+ 0003  8E C0			    mov es,ax
+ 0005  26: C6 06 07D0 21	    mov byte ptr es:[12*160+40*2],'!'
+ 000B  CD 00			    int 0
+				 
+ 000D				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 17:17:33
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 000D	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+
+	   0 Warnings
+	   0 Errors

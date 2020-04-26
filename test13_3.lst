@@ -1,0 +1,141 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 19:31:52
+tempfile.asm						     Page 1 - 1
+
+
+				;编写安装中断7ch的中断例程
+				;将一个全是字母以0结尾的字符串转化为大写
+
+ 0000				DATAS SEGMENT
+ 0000  63 6F 6E 76 65 72	    db 'conversation',0
+       73 61 74 69 6F 6E
+       00
+ 000D				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+ 0000  8C C8				mov ax,cs
+ 0002  8E D8				mov ds,ax
+ 0004  BE 0043 R			mov si,offset capital;设置ds:si指向中断程序首地址
+ 0007  33 C0				xor ax,ax
+ 0009  8E C0				mov es,ax
+ 000B  BF 0200				mov di,200h;设置es:di指向安装的目的地址0000:0200
+ 000E  B9 0011				mov cx,offset capitalend-offset capital;设置传输长度
+ 0011  FC				cld;设置df=0，si,di递增
+ 0012  F3/ A4				rep movsb
+					
+					;设置int7ch中断例程向量表
+ 0014  33 C0				xor ax,ax
+ 0016  8E C0				mov es,ax
+ 0018  26: C7 06 01F0			mov word ptr es:[7ch*4],200h
+       0200
+ 001F  26: C7 06 01F2			mov word ptr es:[7ch*4+2],0
+       0000
+					
+					;调用int7ch中断例程将字符串转化为大写
+ 0026  B8 ---- R		    MOV AX,datas
+ 0029  8E D8			    mov ds,ax
+ 002B  33 F6			    xor si,si
+ 002D  CD 7C			    int 7ch
+				    
+				    ;调用显示字符串子程序验证中断例程结果
+ 002F  B8 ---- R		    mov ax,datas
+ 0032  8E D8			    mov ds,ax
+ 0034  33 F6			    xor si,si
+ 0036  B6 08			    MOV dh,8
+ 0038  B2 03			    MOV dl,3
+ 003A  B1 02			    mov cl,2
+ 003C  E8 0016			    call show_str
+				    
+ 003F  B4 4C			    MOV AH,4CH
+ 0041  CD 21			    INT 21H
+				    
+ 0043				    capital:
+ 0043  51			    push cx
+ 0044  56			    push si
+				    
+ 0045				    change:
+ 0045  8A 0C			    mov cl,[si]
+ 0047  32 ED			    xor ch,ch
+ 0049  E3 06			    jcxz ok;当输入字符为0时跳出循环
+ 004B  80 24 DF			    and byte ptr [si],11011111b
+ 004E  46			    inc si
+ 004F  EB F4			    jmp short change
+				    
+ 0051  5E			    ok:pop si
+ 0052  59			    pop cx
+ 0053  CF			    iret
+				    
+ 0054  90			   	capitalend:nop
+				        
+ 0055				    show_str:
+ 0055  06			   	push es
+ 0056  51			   	push cx
+ 0057  50			   	push ax
+ 0058  56			   	push si
+ 0059  1E			   	push ds
+ 005A  53			   	push bx
+				   	
+ 005B  BB B800			   	mov bx,0b800h
+ 005E  8E C3			   	mov es,bx
+ 0060  B0 A0			   	mov al,160
+ 0062  F6 E6			   	mul dh
+ 0064  8B D8			  	mov bx,ax
+ 0066  FE CA			   	dec dl
+ 0068  02 D2			   	add dl,dl
+ 006A  32 F6			   	xor dh,dh
+ 006C  03 DA			   	add bx,dx
+ 006E  8A D1			   	mov dl,cl
+ 0070  33 FF			   	xor di,di
+ 0072  33 F6			   	xor si,si
+				   	
+ 0074  B9 0010			   	mov cx,16
+				   	
+ 0077  8A 05			   	s:mov al,ds:[di]
+ 0079  26: 88 00		   	mov es:[bx+si],al
+ 007C  26: 88 50 01		   	mov es:[bx+si+1],dl
+ 0080  83 C6 02			   	add si,2
+ 0083  47			   	inc di
+ 0084  E2 F1			   	loop s
+				   	
+				   	
+ 0086  5B			   	pop bx
+ 0087  1F			   	pop ds
+ 0088  5E			   	pop si
+ 0089  58			   	pop ax
+ 008A  59			   	pop cx
+ 008B  07			   	pop es
+ 008C  C3			   	ret
+ 008D				CODES ENDS
+				    END START
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 19:31:52
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 008D	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 000D	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+capitalend . . . . . . . . . . .	L Near	 0054	  CODES	
+capital  . . . . . . . . . . . .	L Near	 0043	  CODES	
+change . . . . . . . . . . . . .	L Near	 0045	  CODES	
+ok . . . . . . . . . . . . . . .	L Near	 0051	  CODES	
+show_str . . . . . . . . . . . .	L Near	 0055	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 0077	  CODES	
+
+	   0 Warnings
+	   0 Errors

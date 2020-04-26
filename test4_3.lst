@@ -1,0 +1,155 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/13/20 19:46:51
+tempfile.asm						     Page 1 - 1
+
+
+				;键盘输入10个学生成绩，分别统计
+				;60-69分,70-79分,80-89分,90-99分,100分
+				;的人数,分别存放在Score6,Score7,Score,Score9,Score10中
+				;然后分别依次显示
+				;10个学生成绩:65,98,78,82,88,95,72,62,90,100
+				;定义缓冲区存放输入的10个学生成绩,输入时每个数据之间隔一个空格
+				;且第一个数据前和最后一个数据后都加一个空格
+ 0000				DATAS SEGMENT
+ 0000 0D 0A 50 6C 65 61		    infon db 0dh,0ah,'Please input the scores of ten students:$'  
+       73 65 20 69 6E 70
+       75 74 20 74 68 65
+       20 73 63 6F 72 65
+       73 20 6F 66 20 74
+       65 6E 20 73 74 75
+       64 65 6E 74 73 3A
+       24
+ 002B 64				buf db 100
+ 002C  00					db ?
+ 002D  0064 [					db 100 dup(0)
+        00
+       ]
+ 0091				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+				    ;定义score五个字节内存单元,分别代表score6到score10
+ 0000 00 00 00 00 00		    score db 0,0,0,0,0
+ 0005				START:
+					
+ 0005  B8 ---- R		    MOV AX,DATAS
+ 0008  8E D8			    MOV DS,AX
+				 	
+ 000A  BF 0000 R		 	mov di,offset score;取得score的偏移地址
+				 	
+ 000D  8D 16 0000 R			lea dx,infon
+ 0011  B4 09			 	mov ah,9
+ 0013  CD 21			 	int 21h;显示输入提示信息
+					
+ 0015  8D 16 002B R			lea dx,buf
+ 0019  B4 0A				mov ah,10
+ 001B  CD 21				int 21h;输入十个学生成绩
+					
+ 001D  8D 36 002D R			lea si,buf+2;ds:si指向输入字符串
+ 0021  B9 0014				mov cx,20;循环10次，判断十个数据分别对应区间
+ 0024				lp:
+ 0024  8A 44 03				mov al,ds:[si+3]
+ 0027  3C 20				cmp al,' ';判断隔两个位后是否为空格
+ 0029  74 09			    jz next1;若为空格则代表一个两位数
+ 002B  2E: FE 45 04		    inc byte ptr cs:[di+4];若不为空格代表一个三位数100,则score10自增1
+ 002F  83 C6 04			    add si,4;si自增4继续进行下一次判断
+ 0032  EB 0B			  	jmp short next2
+ 0034				  next1:
+ 0034  8A 44 01			  	mov al,ds:[si+1]
+ 0037  2C 30			  	sub al,30h;获得两位数的十位数数字
+ 0039  E8 002C			  	call bjbyte;调用bjbyte子程序，判断十位数字为多少
+ 003C  83 C6 03			  	add si,3;si自增3继续进行下一次判断
+ 003F  90			  next2:nop
+ 0040  E2 E2			loop lp
+
+ 0042  BB B800				mov bx,0b800h
+ 0045  8E C3				mov es,bx
+ 0047  BE 0000 R			mov si,offset score
+ 004A  BF 07D0				mov di,160*12+40*2;es:di指向显示缓冲区，在屏幕中间显示结果
+ 004D  B2 02				mov dl,2;设置字体颜色
+ 004F  B9 0005				mov cx,5;输出显示score6到score10五位数字
+ 0052				xianshi:
+ 0052  2E: 8A 04			mov al,cs:[si]
+ 0055  04 30				add al,30h
+ 0057  26: 88 05			mov es:[di],al
+ 005A  26: 88 55 01			mov es:[di+1],dl
+ 005E  46				inc si
+ 005F  83 C7 04				add di,4
+ 0062  E2 EE			loop xianshi
+
+ 0064  B4 4C			    MOV AH,4CH
+ 0066  CD 21			    INT 21H;程序返回
+				    ;bjbyte子程序
+ 0068				bjbyte:
+ 0068  3C 06				cmp al,6;判断十位数字是否为6
+ 006A  74 02				jz s
+ 006C  EB 05			  	jmp short s1
+ 006E				  s:;若为6则score6自增1
+ 006E  2E: FE 05			inc byte ptr cs:[di]
+ 0071  EB 1C				jmp short done
+ 0073				  s1:;若不为6继续判断是否为7
+ 0073  3C 07			  	cmp al,7
+ 0075  74 02			  	jz s2
+ 0077  EB 06			  	jmp short s3
+ 0079				  s2:;若为7则score7自增1
+ 0079  2E: FE 45 01		  	inc byte ptr cs:[di+1]
+ 007D  EB 10			  	jmp short done
+ 007F				  s3:;若不为7则继续判断是否为8
+ 007F  3C 08			    cmp al,8
+ 0081  74 02			    jz s4
+ 0083  EB 06			    jmp short s5
+ 0085				  s4: ;若为8则score8自增1
+ 0085  2E: FE 45 02		    inc byte ptr cs:[di+2]
+ 0089  EB 04			    jmp short done
+ 008B				  s5:;若不为8则必为数字9，score9自增1
+ 008B  2E: FE 45 03		  	inc byte ptr cs:[di+3]
+ 008F  90			  done:nop
+ 0090  C3			  ret;子程序返回
+				  
+ 0091				CODES ENDS
+				    END START
+
+
+
+
+
+
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/13/20 19:46:51
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0091	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0091	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0005	  CODES	
+bjbyte . . . . . . . . . . . . .	L Near	 0068	  CODES	
+buf  . . . . . . . . . . . . . .	Byte	 002B	  DATAS	
+done . . . . . . . . . . . . . .	L Near	 008F	  CODES	
+infon  . . . . . . . . . . . . .	Byte	 0000	  DATAS	
+lp . . . . . . . . . . . . . . .	L Near	 0024	  CODES	
+next1  . . . . . . . . . . . . .	L Near	 0034	  CODES	
+next2  . . . . . . . . . . . . .	L Near	 003F	  CODES	
+s1 . . . . . . . . . . . . . . .	L Near	 0073	  CODES	
+s2 . . . . . . . . . . . . . . .	L Near	 0079	  CODES	
+s3 . . . . . . . . . . . . . . .	L Near	 007F	  CODES	
+s4 . . . . . . . . . . . . . . .	L Near	 0085	  CODES	
+s5 . . . . . . . . . . . . . . .	L Near	 008B	  CODES	
+score  . . . . . . . . . . . . .	Byte	 0000	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 006E	  CODES	
+xianshi  . . . . . . . . . . . .	L Near	 0052	  CODES	
+
+	   0 Warnings
+	   0 Errors

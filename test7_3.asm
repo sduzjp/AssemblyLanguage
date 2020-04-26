@@ -1,0 +1,15 @@
+DATAS SEGMENT
+    db 'unIX'
+    db 'foRK'  
+DATAS ENDS
+
+CODES SEGMENT
+    ASSUME CS:CODES,DS:DATAS
+START:
+    MOV Al,'a'
+    MOV bl,'b'
+    
+    MOV AH,4CH
+    INT 21H
+CODES ENDS
+    END START

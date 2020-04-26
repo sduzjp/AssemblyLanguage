@@ -1,0 +1,308 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/09/20 09:47:05
+tempfile.asm						     Page 1 - 1
+
+
+ 0000				data segment
+ 0000 64				buf db 100
+ 0001  00					db ?
+ 0002  0064 [					db 100 dup(0)
+        00
+       ]
+ 0066 0D 0A 50 6C 65 61			infon db 0dh,0ah,'Please enter hexadecimal digits:$'
+       73 65 20 65 6E 74
+       65 72 20 68 65 78
+       61 64 65 63 69 6D
+       61 6C 20 64 69 67
+       69 74 73 3A 24
+ 0089				data ends
+
+ 0000				datas segment
+ 0000  0080 [				db 128 dup(0)
+        00
+       ]
+ 0080				datas ends
+
+ 0000				show segment
+ 0000  0080 [				db 128 dup(0)
+        00
+       ]
+ 0080				show ends
+
+ 0000				code segment
+					assume cs:code,ds:data
+ 0000				start:
+					;用int21h的10号功能调用实现输入一个字符串并存到内存缓冲区data
+ 0000  B8 ---- R			mov ax,data
+ 0003  8E D8				mov ds,ax
+					
+ 0005  8D 16 0066 R			lea dx,infon
+ 0009  B4 09				mov ah,9
+ 000B  CD 21				int 21h
+					
+ 000D  8D 16 0000 R			lea dx,buf
+ 0011  B4 0A				mov ah,10
+ 0013  CD 21				int 21h 
+					
+ 0015  BE 0002				mov si,2
+ 0018  B9 0008				mov cx,8
+ 001B					a:
+ 001B  51				push cx
+ 001C  8A 04				mov al,ds:[si]
+ 001E  E8 00F5				call change
+ 0021  88 04				mov ds:[si],al
+ 0023  46				inc si
+ 0024  59				pop cx
+ 0025  E2 F4				loop a
+					
+ 0027  BE 0002				mov si,2
+ 002A  E8 0115				call lbyte
+ 002D  BB ---- R			mov bx,show
+ 0030  8E C3				mov es,bx
+ 0032  BF 0000				mov di,0
+ 0035  BE 0003				mov si,3
+ 0038  B9 0004				mov cx,4
+ 003B					nixu:
+ 003B  8A 04				mov al,ds:[si]
+ 003D  26: 88 05			mov es:[di],al
+ 0040  4E				dec si
+ 0041  47				inc di
+ 0042  E2 F7				loop nixu
+ 0044  26: A1 0000			mov ax,es:[0]
+ 0048  26: 8B 16 0002			mov dx,es:[2]
+					
+ 004D  BB ---- R			MOV bx,DATAS
+ 0050  8E DB			    MOV ds,bx
+ 0052  BB ---- R		    mov bx,show
+ 0055  8E C3			    mov es,bx
+ 0057  B9 000A			    mov cx,0ah
+ 005A  E8 000A			    call dwtoc
+				    
+ 005D  B1 02			    mov cl,2
+ 005F  E8 007F			    call show_str
+				    
+ 0062  B8 4C00				done:mov ax,4c00h
+ 0065  CD 21				int 21h
+					
+ 0067					dwtoc:
+ 0067  50				push ax
+ 0068  53				push bx
+ 0069  51				push cx
+ 006A  1E				push ds
+ 006B  33 F6				xor si,si
+ 006D  33 FF				xor di,di
+ 006F					s:
+ 006F  E8 0048				call divdw
+ 0072  8B 1E 0004			mov bx,ds:[4]
+ 0076  83 C3 30				add bx,30h
+ 0079  26: 89 1C			mov es:[si],bx
+ 007C  47				inc di			;设置di记录数据有多少位
+ 007D  A1 0000				mov ax,ds:[0]	;注意循环调用calldiw时候必须预先处理好ax，dx，即将上一次取余后的商存好
+ 0080  8B 16 0002			mov dx,ds:[2]
+ 0084  83 C6 02				add si,2
+ 0087  83 FA 00				cmp dx,0		;最后结束标志ax，dx中存放数据都为0
+ 008A  74 05				je next
+ 008C  EA ---- 006F R			jmp far ptr s
+ 0091					next:
+ 0091  83 F8 00				cmp ax,0
+ 0094  74 05				je ok1
+ 0096  EA ---- 006F R			jmp far ptr s
+					
+ 009B					ok1:
+ 009B  33 F6				xor si,si		;实现将show段的数据逆序放到ds段中
+ 009D  8B CF				mov cx,di
+ 009F  4F				dec di
+ 00A0  03 FF				add di,di
+ 00A2					s1:
+ 00A2  26: 8B 05			mov ax,es:[di]
+ 00A5  89 44 32				mov ds:[50+si],ax
+ 00A8  83 EF 02				sub di,2
+ 00AB  83 C6 02				add si,2
+ 00AE  E2 F2				loop s1
+					
+ 00B0  33 C0				xor ax,ax
+ 00B2  89 44 32				mov ds:[50+si],ax
+					
+ 00B5  1F				pop ds
+ 00B6  59				pop cx
+ 00B7  5B				pop bx
+ 00B8  58				pop ax
+					
+ 00B9  C3				ret
+					
+ 00BA				    divdw:
+ 00BA  1E			    push ds
+ 00BB  52			    push dx
+ 00BC  51			    push cx
+ 00BD  50			    push ax
+				    
+ 00BE  8B C2			    mov ax,dx	;先求高16位除以除数的结果，ax存放商，dx存放余数
+ 00C0  33 D2			    xor dx,dx
+ 00C2  F7 F1			    div cx
+ 00C4  52			    push dx
+				    			;将余数保存下来
+ 00C5  8B D0			    mov dx,ax
+ 00C7  33 C0			    xor ax,ax
+ 00C9  A3 0000			    mov ds:[0],ax
+ 00CC  89 16 0002		    mov ds:[2],dx;将高16位的除法结果保存在高地址字单元中
+				    
+ 00D0  5A			    pop dx		;弹出高16位除法结果的余数
+ 00D1  58			    pop ax		;将被除数的低16位取出来
+ 00D2  50			    push ax		;恢复栈顶，维持push和pop平衡
+ 00D3  F7 F1			    div cx		;此时dx存放高16位除法的余数，ax存放被除数低16位
+				    			;最后结果ax存放商，dx存放余数
+				    			
+ 00D5  A3 0000			    mov ds:[0],ax;将低16位的除法结果商放在低地址字单元
+ 00D8  89 16 0004		    mov ds:[4],dx;最后的余数放在ds:[4]字单元中
+				    ;最后结果的低16位在ds:[0],高16位在ds:[2],余数在ds:[4]
+ 00DC  58			    pop ax
+ 00DD  59			    pop cx
+ 00DE  5A			    pop dx
+ 00DF  1F			    pop ds
+ 00E0  C3			    ret
+				    
+ 00E1				    show_str:
+ 00E1  06			   	push es
+ 00E2  51			   	push cx
+ 00E3  50			   	push ax
+ 00E4  56			   	push si
+ 00E5  1E			   	push ds
+ 00E6  53			   	push bx
+				   	
+				   	
+ 00E7  BB B800			   	mov bx,0b800h
+ 00EA  8E C3			   	mov es,bx
+ 00EC  BB 0500			   	mov bx,500h
+ 00EF  8A D1			   	mov dl,cl
+ 00F1  33 FF			   	xor di,di
+ 00F3  33 F6			   	xor si,si
+				   	
+ 00F5  8A 45 32			   	s0:mov al,ds:[50+di]		;注意是对字节单元进行存储
+ 00F8  26: 88 40 04		   	mov es:[bx+si+4],al
+ 00FC  26: 88 50 05		   	mov es:[bx+si+5],dl
+ 0100  83 C6 02			   	add si,2
+ 0103  83 C7 02			   	add di,2					
+				   	;实际上十进制每位上的数小于10
+				   	;所以在内存单元存放时只放在子单元的低地址字节单元
+				   	;因此di递增2，而不是递增1
+ 0106  3C 00			   	cmp al,0
+ 0108  77 03 E9 FF55			jna done
+ 010D  EB E6			   	jmp short s0
+				   	
+ 010F  5B			   	pop bx
+ 0110  1F			   	pop ds
+ 0111  5E			   	pop si
+ 0112  58			   	pop ax
+ 0113  59			   	pop cx
+ 0114  07			   	pop es
+ 0115  C3			   	ret
+				   	
+ 0116				   	change:
+ 0116  53				push bx
+ 0117  06				push es
+					
+ 0118  3C 30				cmp al,'0'
+ 011A  72 22				jb ok
+ 011C  3C 39				cmp al,'9'
+ 011E  76 12				jna next1
+ 0120  3C 41				cmp al,'A'
+ 0122  72 1A				jb ok
+ 0124  3C 46				cmp al,'F'
+ 0126  76 0E				jna next2
+ 0128  3C 61				cmp al,'a'
+ 012A  72 12				jb ok
+ 012C  3C 66				cmp al,'f'
+ 012E  76 0A				jna next3
+ 0130  EB 0C				jmp short ok
+					
+ 0132					next1:
+ 0132  2C 30				sub al,30h
+ 0134  EB 08				jmp short ok
+ 0136					next2:
+ 0136  2C 37				sub al,37h
+ 0138  EB 04				jmp short ok
+ 013A					next3:
+ 013A  2C 57				sub al,57h
+ 013C  EB 00				jmp short ok
+ 013E  90				ok:nop
+ 013F  07				pop es
+ 0140  5B				pop bx
+ 0141  C3				ret
+					
+ 0142					lbyte:
+ 0142  33 FF				xor di,di
+ 0144  B9 0004				mov cx,4
+ 0147					s4:
+ 0147  51				push cx
+ 0148  8A 04				mov al,ds:[si]
+ 014A  8A 5C 01				mov bl,ds:[si+1]
+ 014D  B1 04				mov cl,4
+ 014F  D2 E0				shl al,cl
+ 0151  02 C3				add al,bl
+ 0153  88 05				mov ds:[di],al
+ 0155  47				inc di
+ 0156  83 C6 02				add si,2
+ 0159  59				pop cx
+ 015A  E2 EB				loop s4
+ 015C  C3				ret
+ 015D				code ends
+					end start
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/09/20 09:47:05
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+code . . . . . . . . . . . . . .	16 Bit	 015D	  Para	  Private 
+datas  . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+data . . . . . . . . . . . . . .	16 Bit	 0089	  Para	  Private 
+show . . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+a  . . . . . . . . . . . . . . .	L Near	 001B	  code	
+buf  . . . . . . . . . . . . . .	Byte	 0000	  data	
+change . . . . . . . . . . . . .	L Near	 0116	  code	
+divdw  . . . . . . . . . . . . .	L Near	 00BA	  code	
+done . . . . . . . . . . . . . .	L Near	 0062	  code	
+dwtoc  . . . . . . . . . . . . .	L Near	 0067	  code	
+infon  . . . . . . . . . . . . .	Byte	 0066	  data	
+lbyte  . . . . . . . . . . . . .	L Near	 0142	  code	
+next1  . . . . . . . . . . . . .	L Near	 0132	  code	
+next2  . . . . . . . . . . . . .	L Near	 0136	  code	
+next3  . . . . . . . . . . . . .	L Near	 013A	  code	
+next . . . . . . . . . . . . . .	L Near	 0091	  code	
+nixu . . . . . . . . . . . . . .	L Near	 003B	  code	
+ok1  . . . . . . . . . . . . . .	L Near	 009B	  code	
+ok . . . . . . . . . . . . . . .	L Near	 013E	  code	
+s0 . . . . . . . . . . . . . . .	L Near	 00F5	  code	
+s1 . . . . . . . . . . . . . . .	L Near	 00A2	  code	
+s4 . . . . . . . . . . . . . . .	L Near	 0147	  code	
+show_str . . . . . . . . . . . .	L Near	 00E1	  code	
+start  . . . . . . . . . . . . .	L Near	 0000	  code	
+s  . . . . . . . . . . . . . . .	L Near	 006F	  code	
+
+	   0 Warnings
+	   0 Errors

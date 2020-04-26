@@ -1,0 +1,119 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/10/20 17:04:27
+tempfile.asm						     Page 1 - 1
+
+
+				;编写0号中断程序，使得除法溢出时
+				;屏幕中间显示"divide overflow!"
+				;然后返回dos
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+					;安装do0中断程序
+ 0000  8C C8			    MOV AX,cs
+ 0002  8E D8			    MOV DS,AX
+ 0004  BE 0035 R		    mov si,offset do0;设置ds:si指向do0，即要安装的程序首地址
+				    
+ 0007  33 C0			    xor ax,ax
+ 0009  8E C0			    mov es,ax
+ 000B  BF 0200			    mov di,200h;设置es:si指向安装的目的地址0000:0200
+				    
+				    ;mov cx,offset do0
+				    ;sub cx,offset next注意不能这样直接减
+				    ;mov ax,offset do0
+				    ;mov cx,offset next
+				    ;sub cx,ax;应该这样减
+ 000E  B9 0049			    mov cx,offset next-offset do0;设置cx为传输长度
+ 0011  FC			    cld
+ 0012  F3/ A4			    rep movsb
+				    
+				    ;设置0号中断向量表
+ 0014  33 C0			    xor ax,ax
+ 0016  8E C0			    mov es,ax
+ 0018  26: C7 06 0000		    mov word ptr es:[0],200h
+       0200
+ 001F  26: C7 06 0002		    mov word ptr es:[2],0
+       0000
+				    
+				    ;测试除法溢出显示divide overflow！
+ 0026  B8 4240			    mov ax,4240h
+ 0029  BA 000F			    mov dx,000fh
+ 002C  B9 000A			    mov cx,10
+ 002F  F7 F1			    div cx
+				    ;int 0
+ 0031  B4 4C			    MOV AH,4CH
+ 0033  CD 21			    INT 21H
+				    
+				    ;do0中断子程序
+ 0035				    do0:
+ 0035  EB 10			    jmp short do0start
+ 0037  64 69 76 69 64 65	    db "divide overflow!"
+       20 6F 76 65 72 66
+       6C 6F 77 21
+				    ;将显示的字符串送入显示缓冲区
+ 0047				    do0start:
+ 0047  50			    push ax
+ 0048  53			    push bx
+ 0049  51			    push cx
+ 004A  57			    push di
+ 004B  56			    push si
+ 004C  1E			    push ds
+				  
+ 004D  8C C8			    mov ax,cs
+ 004F  8E D8			    mov ds,ax
+ 0051  BE 0202			    mov si,202h;设置ds:si指向字符串首地址
+ 0054  B8 B800			    mov ax,0b800h
+ 0057  8E C0			    mov es,ax
+ 0059  33 FF			    xor di,di
+ 005B  B2 02			    mov dl,2
+ 005D  BB 0500			    mov bx,500h
+ 0060  B9 0010			    mov cx,16
+ 0063				    s:
+ 0063  8A 04			    mov al,ds:[si]
+ 0065  26: 88 01		    mov es:[bx+di],al
+ 0068  26: 88 51 01		    mov es:[bx+di+1],dl
+ 006C  46			    inc si
+ 006D  83 C7 02			    add di,2
+ 0070  E2 F1			    loop s
+				    
+ 0072  1F			    pop ds
+ 0073  5E			    pop si
+ 0074  5F			    pop di
+ 0075  59			    pop cx
+ 0076  5B			    pop bx
+ 0077  58			    pop ax
+				    
+ 0078  B8 4C00			    mov ax,4c00h
+ 007B  CD 21			    int 21h
+ 007D  CF				iret
+ 007E  90			next:nop
+ 007F				CODES ENDS
+				    END START
+
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/10/20 17:04:27
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 007F	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+do0start . . . . . . . . . . . .	L Near	 0047	  CODES	
+do0  . . . . . . . . . . . . . .	L Near	 0035	  CODES	
+next . . . . . . . . . . . . . .	L Near	 007E	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 0063	  CODES	
+
+	   0 Warnings
+	   0 Errors

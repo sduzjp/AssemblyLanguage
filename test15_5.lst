@@ -1,0 +1,135 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 10:45:38
+tempfile.asm						     Page 1 - 1
+
+
+				;安装新的int9中断例程，使原有int9中断例程的到拓展
+				;功能，在DOS下，按下F1键改变当前屏幕的显示颜色，其他键照常处理
+
+ 0000				STACKS SEGMENT
+ 0000  0080 [			    db 128 dup (0);存放标志寄存器的值
+        00
+       ]
+				    
+ 0080				STACKS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,SS:STACKS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,stacks
+ 0003  8E D0			    mov ss,ax
+ 0005  BC 0080			    mov sp,128
+				    
+ 0008  0E			    push cs
+ 0009  1F			    pop ds
+ 000A  BE 005F R		    mov si,offset int9;设置ds:si指向安装中断程序首地址
+				    
+				    
+ 000D  33 C0			    xor ax,ax
+ 000F  8E C0			    mov es,ax
+ 0011  BF 0204			    mov di,204h;设置es:di指向安装的目的地址0000:0204
+ 0014  B9 0028			    mov cx,offset int9end-offset int9;设置传输长度
+ 0017  FC			    cld;设置df=0，si,di递增
+ 0018  F3/ A4			    rep movsb
+				    
+				    ;存放原int9中断向量表
+ 001A  26: FF 36 0024		    push es:[9*4]
+ 001F  26: 8F 06 0200		    pop es:[200h];存放原中断例程入口偏移地址
+ 0024  26: FF 36 0026		    push es:[9*4+2]
+ 0029  26: 8F 06 0202		    pop es:[202h];存放原中断例程入口段地址
+				    
+				    ;设置新int9中断向量表
+ 002E  FA			    cli;设置IF=0，在处理int9中断程序的时候禁止其他的可屏蔽中断
+ 002F  26: C7 06 0024		    mov word ptr es:[9*4],204h
+       0204
+ 0036  26: C7 06 0026		    mov word ptr es:[9*4+2],0
+       0000
+ 003D  FB			    sti;设置IF=1，处理完新int9中断程序后可接受其他的可屏蔽中断
+				    
+				    ;调用延迟程序验证新安装的中断子程序
+ 003E  E8 0004			    call delay
+				    
+ 0041  B4 4C			    MOV AH,4CH
+ 0043  CD 21			    INT 21H
+				    
+				    ;延迟子程序
+ 0045				    delay:
+ 0045  50			    push ax
+ 0046  52			    push dx
+ 0047  BA 0100			    mov dx,0100h
+ 004A  33 C0			    xor ax,ax
+ 004C				    s1:
+ 004C  83 E8 01			    sub ax,1
+ 004F  83 DA 00			    sbb dx,0
+ 0052  83 F8 00			    cmp ax,0
+ 0055  75 F5			    jne s1
+ 0057  83 FA 00			    cmp dx,0
+ 005A  75 F0			    jne s1
+				    
+ 005C  5A			    pop dx
+ 005D  58			    pop ax
+ 005E  C3			    ret
+				    
+ 005F				    int9:
+ 005F  50			    push ax
+ 0060  53			    push bx
+ 0061  51			    push cx
+ 0062  06			    push es
+				    
+ 0063  E4 60			    in al,60h
+ 0065  9C			    pushf
+ 0066  2E: FF 1E 0200		    call dword ptr cs:[200h];当此中断例程执行时,(cs)=0
+				    
+ 006B  3C 1E			    cmp al,1eh;判断按下的键是否为F1键
+ 006D  75 13			    jne int9ret
+				    
+				    ;改变显示屏幕的字体颜色
+ 006F  B8 B800			    mov ax,0b800h
+ 0072  8E C0			    mov es,ax
+ 0074  BB 0001			    mov bx,1
+ 0077  B9 07D0			    mov cx,2000
+ 007A				    s:
+ 007A  26: FE 07		    inc byte ptr es:[bx]
+ 007D  83 C3 02			    add bx,2
+ 0080  E2 F8			    loop s
+				    
+ 0082				    int9ret:
+ 0082  07			    pop es
+ 0083  59			    pop cx
+ 0084  5B			    pop bx
+ 0085  58			    pop ax
+ 0086  CF			    iret
+				    
+ 0087				    int9end:
+ 0087  90			    nop
+				    
+ 0088				CODES ENDS
+				    END START
+
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 10:45:38
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0088	  Para	  Private 
+STACKS . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+delay  . . . . . . . . . . . . .	L Near	 0045	  CODES	
+int9end  . . . . . . . . . . . .	L Near	 0087	  CODES	
+int9ret  . . . . . . . . . . . .	L Near	 0082	  CODES	
+int9 . . . . . . . . . . . . . .	L Near	 005F	  CODES	
+s1 . . . . . . . . . . . . . . .	L Near	 004C	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 007A	  CODES	
+
+	   0 Warnings
+	   0 Errors

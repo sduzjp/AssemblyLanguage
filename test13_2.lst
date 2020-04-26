@@ -1,0 +1,228 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 19:21:52
+tempfile.asm						     Page 1 - 1
+
+
+				;编写安装7ch的中断例程
+				;中断例程完成求一个word型数据平方的功能
+				;返回值:dx,ax分别存放结果的高16位和低16位
+				;同时调用显示dword型数据的子程序验证中断子程序
+
+ 0000				data segment
+ 0000  0100 [				db 256 dup (0)
+        00
+       ]
+ 0100				data ends
+
+ 0000				show segment
+ 0000  0100 [				db 256 dup (0)
+        00
+       ]
+ 0100				show ends
+				;定义show数据段用来对调除十取余法的每一位
+				;因为取余是从各位开始然后正序存放的
+				;但是显示的应该从高位开始
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+ 0000  8C C8				mov ax,cs
+ 0002  8E D8				mov ds,ax
+ 0004  BE 004C R			mov si,offset sqr;设置ds:si指向中断例程首地址
+ 0007  33 C0				xor ax,ax
+ 0009  8E C0				mov es,ax
+ 000B  BF 0200				mov di,200h;设置es:di指向安装的目的地址0000:0200
+ 000E  B9 0003				mov cx,offset sqrend-offset sqr
+ 0011  FC				cld;设置df=0,si,di递增
+ 0012  F3/ A4				rep movsb
+
+					;设置中断向量表，将中断例程的程序入口地址存入
+ 0014  33 C0				xor ax,ax
+ 0016  8E C0				mov es,ax
+ 0018  26: C7 06 01F0			mov word ptr es:[7ch*4],200h
+       0200
+ 001F  26: C7 06 01F2			mov word ptr es:[7ch*4+2],0
+       0000
+					
+ 0026  B8 0D80			    MOV AX,3456
+ 0029  CD 7C			    int 7ch
+ 002B  03 C0			    add ax,ax
+ 002D  13 D2			    adc dx,dx;带进位加法,(dx)=(dx)+(dx)+CF
+				    
+				    ;把dx,ax送入显示缓冲区，易错点：需要将其转换成对应的ASCII码值
+				    ;把dx,ax中的字形数据转化为对应ASCII码值
+ 002F  BB ---- R		    MOV bx,DATA
+ 0032  8E DB			    MOV ds,bx
+ 0034  BB ---- R		    mov bx,show
+ 0037  8E C3			    mov es,bx
+ 0039  B9 000A			    mov cx,0ah
+ 003C  E8 0011			    call dwtoc
+				    
+ 003F  B6 08			    mov dh,8
+ 0041  B2 03			    mov dl,3
+ 0043  B1 02			    mov cl,2
+ 0045  E8 0082			    call show_str
+				    
+ 0048  B4 4C			    MOV AH,4CH
+ 004A  CD 21			    INT 21H
+				    
+ 004C				    sqr:
+ 004C  F7 E0			    mul ax;这里不需要push，pop ax，否则容易出错
+ 004E  CF			    iret
+ 004F  90			sqrend:nop
+ 0050					dwtoc:
+ 0050  50				push ax
+ 0051  53				push bx
+ 0052  51				push cx
+ 0053  1E				push ds
+ 0054  33 F6				xor si,si
+ 0056  33 FF				xor di,di
+ 0058					s:
+ 0058  E8 0048				call divdw
+ 005B  8B 1E 0004			mov bx,ds:[4]
+ 005F  83 C3 30				add bx,30h
+ 0062  26: 89 1C			mov es:[si],bx
+ 0065  47				inc di			;设置di记录数据有多少位
+ 0066  A1 0000				mov ax,ds:[0]	;注意循环调用calldiw时候必须预先处理好ax，dx，即将上一次取余后的商存好
+ 0069  8B 16 0002			mov dx,ds:[2]
+ 006D  83 C6 02				add si,2
+ 0070  83 FA 00				cmp dx,0		;最后结束标志ax，dx中存放数据都为0
+ 0073  74 05				je next
+ 0075  EA ---- 0058 R			jmp far ptr s
+ 007A					next:
+ 007A  83 F8 00				cmp ax,0
+ 007D  74 05				je ok
+ 007F  EA ---- 0058 R			jmp far ptr s
+					
+ 0084					ok:
+ 0084  33 F6				xor si,si		;实现将show段的数据逆序放到ds段中
+ 0086  8B CF				mov cx,di
+ 0088  4F				dec di
+ 0089  03 FF				add di,di
+ 008B					s1:
+ 008B  26: 8B 05			mov ax,es:[di]
+ 008E  89 44 32				mov ds:[50+si],ax
+ 0091  83 EF 02				sub di,2
+ 0094  83 C6 02				add si,2
+ 0097  E2 F2				loop s1
+					
+ 0099					ok1:
+ 0099  33 C0				xor ax,ax
+ 009B  89 44 32				mov ds:[50+si],ax
+					
+ 009E  1F				pop ds
+ 009F  59				pop cx
+ 00A0  5B				pop bx
+ 00A1  58				pop ax
+					
+ 00A2  C3				ret
+					
+ 00A3				    divdw:
+ 00A3  1E			    push ds
+ 00A4  52			    push dx
+ 00A5  51			    push cx
+ 00A6  50			    push ax
+				    
+ 00A7  8B C2			    mov ax,dx	;先求高16位除以除数的结果，ax存放商，dx存放余数
+ 00A9  33 D2			    xor dx,dx
+ 00AB  F7 F1			    div cx
+ 00AD  52			    push dx
+				    			;将余数保存下来
+ 00AE  8B D0			    mov dx,ax
+ 00B0  33 C0			    xor ax,ax
+ 00B2  A3 0000			    mov ds:[0],ax
+ 00B5  89 16 0002		    mov ds:[2],dx;将高16位的除法结果保存在高地址字单元中
+				    
+ 00B9  5A			    pop dx		;弹出高16位除法结果的余数
+ 00BA  58			    pop ax		;将被除数的低16位取出来
+ 00BB  50			    push ax		;恢复栈顶，维持push和pop平衡
+ 00BC  F7 F1			    div cx		;此时dx存放高16位除法的余数，ax存放被除数低16位
+				    			;最后结果ax存放商，dx存放余数
+				    			
+ 00BE  A3 0000			    mov ds:[0],ax;将低16位的除法结果商放在低地址字单元
+ 00C1  89 16 0004		    mov ds:[4],dx;最后的余数放在ds:[4]字单元中
+				    ;最后结果的低16位在ds:[0],高16位在ds:[2],余数在ds:[4]
+ 00C5  58			    pop ax
+ 00C6  59			    pop cx
+ 00C7  5A			    pop dx
+ 00C8  1F			    pop ds
+ 00C9  C3			    ret
+				    
+ 00CA				    show_str:
+ 00CA  06			   	push es
+ 00CB  51			   	push cx
+ 00CC  50			   	push ax
+ 00CD  56			   	push si
+ 00CE  1E			   	push ds
+ 00CF  53			   	push bx
+				   	
+				   	
+ 00D0  BB B800			   	mov bx,0b800h
+ 00D3  8E C3			   	mov es,bx
+ 00D5  BB 0500			   	mov bx,500h
+ 00D8  8A D1			   	mov dl,cl
+ 00DA  33 FF			   	xor di,di
+ 00DC  33 F6			   	xor si,si
+				   	
+ 00DE  8A 45 32			   	s0:mov al,ds:[50+di]		;注意是对字节单元进行存储
+ 00E1  26: 88 40 04		   	mov es:[bx+si+4],al
+ 00E5  26: 88 50 05		   	mov es:[bx+si+5],dl
+ 00E9  83 C6 02			   	add si,2
+ 00EC  83 C7 02			   	add di,2					
+				   	;实际上十进制每位上的数小于10
+				   	;所以在内存单元存放时只放在子单元的低地址字节单元
+				   	;因此di递增2，而不是递增1
+ 00EF  3C 00			   	cmp al,0
+ 00F1  76 02				jna done
+ 00F3  EB E9			   	jmp short s0
+				   	
+ 00F5  90			   	done:nop
+ 00F6  5B			   	pop bx
+ 00F7  1F			   	pop ds
+ 00F8  5E			   	pop si
+ 00F9  58			   	pop ax
+ 00FA  59			   	pop cx
+ 00FB  07			   	pop es
+ 00FC  C3			   	ret
+				     
+ 00FD				CODES ENDS
+				    END START
+
+
+
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 19:21:52
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 00FD	  Para	  Private 
+data . . . . . . . . . . . . . .	16 Bit	 0100	  Para	  Private 
+show . . . . . . . . . . . . . .	16 Bit	 0100	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+divdw  . . . . . . . . . . . . .	L Near	 00A3	  CODES	
+done . . . . . . . . . . . . . .	L Near	 00F5	  CODES	
+dwtoc  . . . . . . . . . . . . .	L Near	 0050	  CODES	
+next . . . . . . . . . . . . . .	L Near	 007A	  CODES	
+ok1  . . . . . . . . . . . . . .	L Near	 0099	  CODES	
+ok . . . . . . . . . . . . . . .	L Near	 0084	  CODES	
+s0 . . . . . . . . . . . . . . .	L Near	 00DE	  CODES	
+s1 . . . . . . . . . . . . . . .	L Near	 008B	  CODES	
+show_str . . . . . . . . . . . .	L Near	 00CA	  CODES	
+sqrend . . . . . . . . . . . . .	L Near	 004F	  CODES	
+sqr  . . . . . . . . . . . . . .	L Near	 004C	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 0058	  CODES	
+
+	   0 Warnings
+	   0 Errors

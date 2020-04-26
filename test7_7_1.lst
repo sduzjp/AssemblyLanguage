@@ -1,0 +1,54 @@
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 21:42:00
+tempfile.asm						     Page 1 - 1
+
+
+ 0000				DATAS SEGMENT
+ 0000  77 65 6C 63 6F 6D	    db 'welcome to masm!'
+       65 20 74 6F 20 6D
+       61 73 6D 21
+ 0010  2E 2E 2E 2E 2E 2E	    db '................'  
+       2E 2E 2E 2E 2E 2E
+       2E 2E 2E 2E
+ 0020				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,DATAS
+ 0003  8E D8			    MOV DS,AX
+ 0005  BE 0000			    mov si,0
+				    
+ 0008  B9 0008			    mov cx,8
+ 000B  8B 04			    s:mov ax,[si]
+ 000D  89 44 10			    mov [si+16],ax
+ 0010  83 C6 02			    add si,2
+ 0013  E2 F6			    loop s
+				    
+ 0015  B4 4C			    MOV AH,4CH
+ 0017  CD 21			    INT 21H
+ 0019				CODES ENDS
+				    END START
+
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 21:42:00
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0019	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0020	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 000B	  CODES	
+
+	   0 Warnings
+	   0 Errors

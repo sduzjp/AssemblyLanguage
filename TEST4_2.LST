@@ -1,0 +1,82 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/14/20 16:48:47
+test4_2.asm						     Page 1 - 1
+
+
+				;利用中断调用，在屏幕上显示1-9之间的随机数。中断号为86H。
+				;需要写好中断子程序，安装好中断子程序(安装在内存0000:0200中，因为随时可能会发生中断)
+				;设置中断向量表
+				;写中断子程序，产生一个1-9的随机数
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+					;设置中断向量表，中断号为86H
+ 0000  33 C0				xor ax,ax
+ 0002  8E C0				mov es,ax
+ 0004  B8 0019 R			mov ax,offset suijishu;取得中断程序偏移地址
+ 0007  26: A3 0218			mov word ptr es:[86h*4],ax
+ 000B  B8 ---- R			mov ax,seg suijishu;取得中断程序段地址
+ 000E  26: A3 021A			mov word ptr es:[86h*4+2],ax
+					
+					;调用86H中断子程序
+ 0012  CD 86				int 86h
+					
+ 0014  B8 4C00				mov ax,4c00h
+ 0017  CD 21				int 21h;程序返回
+					;中断程序，实现产生一个1-9随机数并显示
+ 0019				suijishu:
+ 0019  50				push ax
+ 001A  52				push dx;保护寄存器值
+ 001B  FB				sti;sti指令将IF=1,响应int 1ah中断
+ 001C  B4 00			    MOV ah,0
+ 001E  CD 1A			    int 1ah;调用第1ah的0子程序，读取始终滴答计数
+				    
+ 0020  8B C2			    mov ax,dx;将产生的随机数存入ax
+ 0022  83 E0 0F			    and ax,15;进行与运算得到低4位,(ah)=0
+ 0025  B2 0A			    mov dl,10
+ 0027  F6 F2			    div dl;除10后,ah中存放余数,al中存放商.余数就是随机十进制数
+ 0029  B2 02			    mov dl,2;设置字符颜色
+ 002B  80 FC 00			    cmp ah,0;判断随机数是否为0
+ 002E  74 02			    jz next;若为0则增1改为显示随机数1
+ 0030  EB 03			    jmp short next1
+ 0032				next:
+ 0032  80 C4 01				add ah,1
+ 0035				next1:
+ 0035  80 C4 30			    add ah,30h;将十进制随机数转换为对应ASCII码值
+ 0038  BB B800			    mov bx,0b800h
+ 003B  8E C3			    mov es,bx
+ 003D  26: 88 26 07D0		    mov es:[160*12+40*2],ah
+ 0042  26: 88 16 07D1		    mov es:[160*12+40*2+1],dl;在屏幕中间显示随机数
+				    
+ 0047  5A			    pop dx
+ 0048  58			    pop ax;恢复寄存器值
+ 0049  CF				iret
+
+ 004A				CODES ENDS
+				    END START
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/14/20 16:48:47
+test4_2.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 004A	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+next1  . . . . . . . . . . . . .	L Near	 0035	  CODES	
+next . . . . . . . . . . . . . .	L Near	 0032	  CODES	
+suijishu . . . . . . . . . . . .	L Near	 0019	  CODES	
+
+	   0 Warnings
+	   0 Errors

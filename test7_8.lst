@@ -1,0 +1,66 @@
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 22:11:32
+tempfile.asm						     Page 1 - 1
+
+
+ 0000				DATAS SEGMENT
+ 0000  31 2E 20 66 69 6C	    db '1. file         '
+       65 20 20 20 20 20
+       20 20 20 20
+ 0010  32 2E 20 65 64 69	    db '2. edit         '
+       74 20 20 20 20 20
+       20 20 20 20
+ 0020  33 2E 20 73 65 61	    db '3. search       '
+       72 63 68 20 20 20
+       20 20 20 20
+ 0030  34 2E 20 76 69 65	    db '4. view         '
+       77 20 20 20 20 20
+       20 20 20 20
+ 0040  35 2E 20 6F 70 74	    db '5. options      '
+       69 6F 6E 73 20 20
+       20 20 20 20
+ 0050  36 2E 20 68 65 6C	    db '6. help         '
+       70 20 20 20 20 20
+       20 20 20 20
+ 0060				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,DATAS
+ 0003  8E D8			    MOV DS,AX
+ 0005  BB 0000			    mov bx,0
+				    
+ 0008  B9 0006			    mov cx,6
+ 000B  8A 47 03			    s: mov al,[bx+3]
+ 000E  24 DF			    and al,11011111b
+ 0010  88 47 03			    mov 3[bx],al
+ 0013  83 C3 10			    add bx,16
+ 0016  E2 F3			    loop s
+				    
+ 0018  B4 4C			    MOV AH,4CH
+ 001A  CD 21			    INT 21H
+ 001C				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    02/23/20 22:11:32
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 001C	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0060	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 000B	  CODES	
+
+	   0 Warnings
+	   0 Errors

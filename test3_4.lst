@@ -1,0 +1,228 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/09/20 09:41:03
+tempfile.asm						     Page 1 - 1
+
+
+ 0000				data segment
+ 0000 64				buf db 100
+ 0001  00					db ?
+ 0002  0064 [					db 100 dup(0)
+        00
+       ]
+ 0066 64				buf1 db 100
+ 0067  00					 db ?
+ 0068  0064 [					 db 100 dup(0)
+        00
+       ]
+ 00CC 0D 0A 50 6C 65 61			infon1 db 0dh,0ah,'Please input the first number:$'
+       73 65 20 69 6E 70
+       75 74 20 74 68 65
+       20 66 69 72 73 74
+       20 6E 75 6D 62 65
+       72 3A 24
+ 00ED 0D 0A 50 6C 65 61			infon2 db 0dh,0ah,'Please input the second number:$'
+       73 65 20 69 6E 70
+       75 74 20 74 68 65
+       20 73 65 63 6F 6E
+       64 20 6E 75 6D 62
+       65 72 3A 24
+ 010F 0D 0A 54 68 65 20			answer db 0dh,0ah,'The answer is:$'
+       61 6E 73 77 65 72
+       20 69 73 3A 24
+ 0120				data ends
+
+ 0000				datas segment
+ 0000  0080 [				db 128 dup(0)
+        00
+       ]
+ 0080				datas ends
+
+ 0000				show segment
+ 0000  0080 [				db 128 dup(0)
+        00
+       ]
+ 0080				show ends
+				;定义一个栈段用来保存数字的4个16位
+ 0000				stack segment
+ 0000  0004 [				dw 4 dup(0)
+        0000
+       ]
+ 0008				stack ends
+ 0000				code segment
+					assume cs:code,ds:data,ss:stack
+ 0000				start:
+					;用int21h的10号功能调用实现输入一个字符串并存到内存缓冲区data
+ 0000  B8 ---- R			mov ax,data
+ 0003  8E D8				mov ds,ax
+					
+ 0005  8D 16 00CC R			lea dx,infon1
+ 0009  B4 09				mov ah,9
+ 000B  CD 21				int 21h
+					
+ 000D  8D 16 0000 R			lea dx,buf
+ 0011  B4 0A				mov ah,10
+ 0013  CD 21				int 21h 
+
+ 0015  BE 0002				mov si,2
+ 0018  B9 000F				mov cx,15
+ 001B					a:
+ 001B  8A 04				mov al,ds:[si]
+ 001D  E8 0089				call change
+ 0020  88 04				mov ds:[si],al
+ 0022  46				inc si
+ 0023  E2 F6				loop a
+
+ 0025  BB ---- R			mov bx,data
+ 0028  8E DB				mov ds,bx
+ 002A  8D 16 00ED R			lea dx,infon2
+ 002E  B4 09				mov ah,9
+ 0030  CD 21				int 21h
+					
+ 0032  8D 16 0066 R			lea dx,buf1
+ 0036  B4 0A				mov ah,10
+ 0038  CD 21				int 21h 
+					
+ 003A  8D 36 0068 R			lea si,buf1+2
+ 003E  B9 000F				mov cx,15
+ 0041					b:
+ 0041  8A 04				mov al,ds:[si]
+ 0043  E8 0063				call change
+ 0046  88 04				mov ds:[si],al
+ 0048  46				inc si
+ 0049  E2 F6				loop b
+				    
+ 004B  8D 36 0010 R		    lea si,buf+16
+ 004F  8D 3E 0076 R		    lea di,buf1+16
+ 0053  8A 0E 0001 R		    mov cl,[buf+1]
+ 0057  B5 00			    mov ch,0
+ 0059  B0 00			    mov al,0
+ 005B  51			 lp:push cx
+ 005C  B1 0A			 	mov cl,0ah
+ 005E  02 04			 	add al,ds:[si]
+ 0060  02 05			 	add al,ds:[di]
+ 0062  B4 00			 	mov ah,0
+ 0064  F6 F1			 	div cl
+ 0066  88 24			 	mov ds:[si],ah
+ 0068  4E			 	dec si
+ 0069  4F			 	dec di
+ 006A  59			 	pop cx
+ 006B  E2 EE			 	loop lp
+				 	
+ 006D				overlp:
+ 006D  BB B800				mov bx,0b800h
+ 0070  8E C3				mov es,bx
+ 0072  BF 0690				mov di,160*10+40*2;es:di指向显示缓冲区
+ 0075  BE 0002				mov si,2;ds:si指向结果的字符串
+ 0078  B9 000F				mov cx,15
+ 007B  3C 00				cmp al,0
+ 007D  74 09				jz xianshi
+ 007F  A2 0001				mov ds:[1],al
+ 0082  BE 0001				mov si,1
+ 0085  B9 0010				mov cx,16
+					
+ 0088				xianshi:
+					;先将结果字符串转换为ASCII码对应数值
+ 0088  51				push cx
+ 0089  56				push si
+ 008A					jia:
+ 008A  B0 30				mov al,30h
+ 008C  00 04				add [si],al
+ 008E  46				inc si
+ 008F  E2 F9				loop jia
+ 0091  5E				pop si;恢复si,cx值实现传送至显示缓冲区
+ 0092  59				pop cx
+ 0093  B2 02				mov dl,2
+ 0095					xianshi1:
+ 0095  8A 04				mov al,ds:[si]
+ 0097  26: 88 05			mov es:[di],al
+ 009A  26: 88 55 01			mov es:[di+1],dl
+ 009E  46				inc si
+ 009F  83 C7 02				add di,2
+ 00A2  E2 F1				loop xianshi1
+					
+					
+ 00A4  B8 4C00				mov ax,4c00h
+ 00A7  CD 21				int 21h
+
+ 00A9				   	change:
+ 00A9  53				push bx
+ 00AA  06				push es
+					
+ 00AB  3C 30				cmp al,'0'
+ 00AD  72 22				jb ok
+ 00AF  3C 39				cmp al,'9'
+ 00B1  76 12				jna next1
+ 00B3  3C 41				cmp al,'A'
+ 00B5  72 1A				jb ok
+ 00B7  3C 46				cmp al,'F'
+ 00B9  76 0E				jna next2
+ 00BB  3C 61				cmp al,'a'
+ 00BD  72 12				jb ok
+ 00BF  3C 66				cmp al,'f'
+ 00C1  76 0A				jna next3
+ 00C3  EB 0C				jmp short ok
+					
+ 00C5					next1:
+ 00C5  2C 30				sub al,30h
+ 00C7  EB 08				jmp short ok
+ 00C9					next2:
+ 00C9  2C 37				sub al,37h
+ 00CB  EB 04				jmp short ok
+ 00CD					next3:
+ 00CD  2C 57				sub al,57h
+ 00CF  EB 00				jmp short ok
+ 00D1  90				ok:nop
+ 00D2  07				pop es
+ 00D3  5B				pop bx
+ 00D4  C3				ret
+					
+ 00D5				code ends
+					end start
+
+
+
+
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/09/20 09:41:03
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+code . . . . . . . . . . . . . .	16 Bit	 00D5	  Para	  Private 
+datas  . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+data . . . . . . . . . . . . . .	16 Bit	 0120	  Para	  Private 
+show . . . . . . . . . . . . . .	16 Bit	 0080	  Para	  Private 
+stack  . . . . . . . . . . . . .	16 Bit	 0008	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+answer . . . . . . . . . . . . .	Byte	 010F	  data	
+a  . . . . . . . . . . . . . . .	L Near	 001B	  code	
+buf1 . . . . . . . . . . . . . .	Byte	 0066	  data	
+buf  . . . . . . . . . . . . . .	Byte	 0000	  data	
+b  . . . . . . . . . . . . . . .	L Near	 0041	  code	
+change . . . . . . . . . . . . .	L Near	 00A9	  code	
+infon1 . . . . . . . . . . . . .	Byte	 00CC	  data	
+infon2 . . . . . . . . . . . . .	Byte	 00ED	  data	
+jia  . . . . . . . . . . . . . .	L Near	 008A	  code	
+lp . . . . . . . . . . . . . . .	L Near	 005B	  code	
+next1  . . . . . . . . . . . . .	L Near	 00C5	  code	
+next2  . . . . . . . . . . . . .	L Near	 00C9	  code	
+next3  . . . . . . . . . . . . .	L Near	 00CD	  code	
+ok . . . . . . . . . . . . . . .	L Near	 00D1	  code	
+overlp . . . . . . . . . . . . .	L Near	 006D	  code	
+start  . . . . . . . . . . . . .	L Near	 0000	  code	
+xianshi1 . . . . . . . . . . . .	L Near	 0095	  code	
+xianshi  . . . . . . . . . . . .	L Near	 0088	  code	
+
+	   0 Warnings
+	   0 Errors

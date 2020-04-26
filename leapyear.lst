@@ -1,0 +1,183 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/11/20 16:28:14
+tempfile.asm						     Page 1 - 1
+
+
+				;判断是否为闰年
+ 0000				DATAS SEGMENT
+ 0000 0D 0A 50 6C 65 61		    infon db 0dh,0ah,'Please input a year:$';声明空间存储输入提示信息，其中0d回车，0a换行
+       73 65 20 69 6E 70
+       75 74 20 61 20 79
+       65 61 72 3A 24
+ 0017 0D 0A 54 68 69 73		    Y db 0dh,0ah,'This is a leap year!$';声明空间存储是闰年提示信息，另一一行输出
+       20 69 73 20 61 20
+       6C 65 61 70 20 79
+       65 61 72 21 24
+ 002E 0D 0A 54 68 69 73		    N db 0dh,0ah,'This is not a leap year!$';声明空间存储不是闰年信息，另一一行输出
+       20 69 73 20 6E 6F
+       74 20 61 20 6C 65
+       61 70 20 79 65 61
+       72 21 24
+ 0049 0000			    W dw 0;声明空间存储年份字符串对应的年份数字
+ 004B 08			    buf db 8
+ 004C  00			    	db ?
+ 004D  0008 [			    	db 8 dup(0)
+        00
+       ]
+				   ;声明空间为缓冲区，共10个字节
+ 0055				DATAS ENDS
+
+ 0000				STACKS SEGMENT
+ 0000  00C8 [			    db 200 dup(0)
+        00
+       ]
+ 00C8				STACKS ENDS;定义一个字节为200的栈段
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS,SS:STACKS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,DATAS
+ 0003  8E D8			    MOV DS,AX;指向数据段
+				    
+ 0005  8D 16 0000 R		    lea dx,infon
+ 0009  B4 09			    mov ah,9
+ 000B  CD 21			    int 21h;在屏幕上显示提示输入信息
+				    
+ 000D  8D 16 004B R		    lea dx,buf
+ 0011  B4 0A			    mov ah,10
+ 0013  CD 21			    int 21h;从键盘输入年份字符串
+				    
+ 0015  8A 0E 004C R		    mov cl,[buf+1]
+ 0019  B5 00				mov ch,0;cx中存放实际输入字符串的位数
+ 001B  8D 3E 004D R			lea di,buf+2;获取字符串首地址
+ 001F  E8 001B				call datacate;调用子程序将年份字符串转换为年份数字
+ 0022  E8 0041				call ifyears;调用子程序判断是否为闰年
+ 0025  72 0A				jc a1;判断cf标志寄存器是否为1，如是则跳转到a1
+					
+ 0027  8D 16 002E R			lea dx,n
+ 002B  B4 09				mov ah,9
+ 002D  CD 21				int 21h;如果不是则显示不是闰年提示信息
+ 002F  EB 08				jmp exit
+					
+ 0031  8D 16 0017 R		a1: lea dx,y
+ 0035  B4 09				mov ah,9
+ 0037  CD 21				int 21h;如果是则显示是闰年提示信息
+					
+ 0039  B4 4C			exit:mov ah,4ch
+ 003B  CD 21				int 21h;程序返回
+					
+				;将年份字符串转换为年份数字
+ 003D				datacate proc near;指明该字符串在主程序段内
+ 003D  51				push cx;保存cx
+ 003E  49				dec cx;cx自减1，使得下面循环si指向最后一个字符(buf中回车符前一个)
+ 003F  8D 36 004D R			lea si,buf+2
+ 0043				tt1:
+ 0043  46				inc si
+ 0044  E2 FD				loop tt1
+ 0046  59				pop cx;将si指向最后一个字符
+					
+ 0047  B6 30				mov dh,30h;辅助数据，用来将数字字符对应的ASCII码转换为代表的数字本身
+ 0049  B3 0A				mov bl,10;辅助数据，用来每进一位时使ax乘10
+ 004B  B8 0001				mov ax,1;ax用来装对应位的权值
+ 004E  50			I1: push ax
+ 004F  53				push bx
+ 0050  52				push dx;保护寄存器值
+					
+ 0051  28 34				sub byte ptr [si],dh;将单个字符转换为数字本身
+ 0053  8A 1C				mov bl,byte ptr [si];获取该位数字
+ 0055  B7 00				mov bh,0
+ 0057  F7 E3				mul bx;该位数字乘以对应权值,实际上数字不会超过一个字节
+ 0059  01 06 0049 R			add [W],ax;将数字加到结果中，所有加完后即为对应年份数字
+					
+ 005D  5A				pop dx
+ 005E  5B				pop bx
+ 005F  58				pop ax;恢复寄存器值
+ 0060  F6 E3				mul bl;权值乘以10
+ 0062  4E				dec si;si自减1，指向更高一位
+ 0063  E2 E9				loop I1
+ 0065  C3				ret;子程序返回
+ 0066				datacate endp
+				;判断是否为闰年子程序
+ 0066				ifyears proc near;指明子程序在主程序内
+ 0066  53				push bx
+ 0067  51				push cx
+ 0068  52				push dx;保护寄存器值
+					
+ 0069  A1 0049 R			mov ax,[W];获取年份数字
+ 006C  8B C8				mov cx,ax;将年份数字备份到cx中
+ 006E  BA 0000				mov dx,0
+ 0071  BB 0064				mov bx,100
+ 0074  F7 F3				div bx;判断年份是否能被100整除
+ 0076  83 FA 00				cmp dx,0
+ 0079  75 0F				jnz lab1;若不能则跳转到lab1继续判断能否被4整除
+ 007B  8B C1				mov ax,cx
+ 007D  BB 0190				mov bx,400
+ 0080  F7 F3				div bx;若能则继续判读能否被400整除
+ 0082  83 FA 00				cmp dx,0
+ 0085  74 15				jz lab2;若能则跳转到lab2
+ 0087  F8				clc;若不能将cf置0，不是闰年
+ 0088  EB 13				jmp short lab3;跳转到lab3
+ 008A				lab1:
+ 008A  8B C1				mov ax,cx
+ 008C  BA 0000				mov dx,0
+ 008F  BB 0004				mov bx,4
+ 0092  F7 F3				div bx;判断能否被4整除
+ 0094  83 FA 00				cmp dx,0
+ 0097  74 03				jz lab2;若能则跳转到lab2
+ 0099  F8				clc;若不能则cf置0，不是闰年
+ 009A  EB 01				jmp lab3;跳转到lab3
+ 009C  F9			lab2:stc;cf置1，是闰年
+ 009D				lab3:
+ 009D  5A				pop dx
+ 009E  59				pop cx
+ 009F  5B				pop bx
+ 00A0  C3				ret;子程序返回
+ 00A1				ifyears endp
+
+ 00A1				CODES ENDS
+				    END START
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/11/20 16:28:14
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 00A1	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0055	  Para	  Private 
+STACKS . . . . . . . . . . . . .	16 Bit	 00C8	  Para	  Private 
+
+
+Procedures,  parameters and locals:
+
+                N a m e                 Type     Value    Attr
+
+datacate . . . . . . . . . . . .	P Near	 003D	  CODES	Length= 0029 Public
+  tt1  . . . . . . . . . . . . .	L Near	 0043	  CODES	
+  I1 . . . . . . . . . . . . . .	L Near	 004E	  CODES	
+ifyears  . . . . . . . . . . . .	P Near	 0066	  CODES	Length= 003B Public
+  lab1 . . . . . . . . . . . . .	L Near	 008A	  CODES	
+  lab2 . . . . . . . . . . . . .	L Near	 009C	  CODES	
+  lab3 . . . . . . . . . . . . .	L Near	 009D	  CODES	
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+N  . . . . . . . . . . . . . . .	Byte	 002E	  DATAS	
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+W  . . . . . . . . . . . . . . .	Word	 0049	  DATAS	
+Y  . . . . . . . . . . . . . . .	Byte	 0017	  DATAS	
+a1 . . . . . . . . . . . . . . .	L Near	 0031	  CODES	
+buf  . . . . . . . . . . . . . .	Byte	 004B	  DATAS	
+exit . . . . . . . . . . . . . .	L Near	 0039	  CODES	
+infon  . . . . . . . . . . . . .	Byte	 0000	  DATAS	
+
+	   0 Warnings
+	   0 Errors

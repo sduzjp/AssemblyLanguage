@@ -1,0 +1,61 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 15:04:38
+tempfile.asm						     Page 1 - 1
+
+
+ 0000				DATAS SEGMENT
+ 0000 08			buf db 8
+ 0001  00			    db ?
+ 0002  0008 [			    db 8 dup (?)
+        00
+       ]
+ 000A				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  B8 ---- R		    MOV AX,DATAS
+ 0003  8E D8			    MOV DS,AX
+ 0005  BA 0000				mov dx,0
+ 0008  B4 0A				mov ah,0ah
+ 000A  CD 21				int 21h
+					
+ 000C  BB B800			    mov bx,0b800h
+ 000F  8E C3			    mov es,bx
+ 0011  33 F6			    xor si,si
+ 0013  8A 04			    mov al,ds:[si]
+ 0015  26: 88 84 0500		    mov es:[500h+si],al
+				   
+				    
+ 001A  B4 4C			    MOV AH,4CH
+ 001C  CD 21			    INT 21H
+ 001E				CODES ENDS
+				    END START
+
+
+
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 15:04:38
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 001E	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 000A	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+buf  . . . . . . . . . . . . . .	Byte	 0000	  DATAS	
+
+	   0 Warnings
+	   0 Errors

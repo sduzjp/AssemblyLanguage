@@ -1,0 +1,57 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 20:43:36
+tempfile.asm						     Page 1 - 1
+
+
+				;DOS中断例程应用int21h
+				;在屏幕的5行12列显示字符串"Welcome to masm!"
+				;调用int21h的第九号子程序，要显示的子程序需用'$'作为结束符
+
+ 0000				DATAS SEGMENT
+ 0000  57 65 6C 63 6F 6D	    db 'Welcome to masm','$' 
+       65 20 74 6F 20 6D
+       61 73 6D 24
+ 0010				DATAS ENDS
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  B4 02				mov ah,2;置光标
+ 0002  B7 00				mov bh,0;第0页
+ 0004  B6 05				mov dh,5;第5行
+ 0006  B2 0C				mov dl,12;第12列
+ 0008  CD 10				int 10h;调用int10h的2号子程序置光标
+					
+					;易错点：注意只能用ds:dx指向字符串首地址，不能用ds:si/ds:di
+					
+ 000A  B8 ---- R		    MOV AX,DATAS
+ 000D  8E D8			    MOV DS,AX
+ 000F  33 D2			    xor dx,dx;ds:dx指向字符串首地址
+ 0011  B4 09			    mov ah,9
+ 0013  CD 21			    int 21h;调用int21h中断例程的9号子程序显示字符串
+				    
+ 0015  B4 4C			    MOV AH,4CH
+ 0017  CD 21			    INT 21H
+ 0019				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    03/07/20 20:43:36
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0019	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0010	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+
+	   0 Warnings
+	   0 Errors

@@ -1,0 +1,214 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 15:44:48
+tempfile.asm						     Page 1 - 1
+
+
+				;dwtoc子程序将dword型数据转变为表示十进制数的字符串
+				;show_str子程序显示以0结尾的字符串
+				;显示十进制数值改进程序
+				;程序改进了除法溢出的问题，使用了divdw子程序
+
+ 0000				DATAS SEGMENT
+ 0000  0100 [			     db 256 dup (0)
+        00
+       ]
+ 0100				DATAS ENDS
+				;定义show数据段用来对调除十取余法的每一位
+				;因为取余是从各位开始然后正序存放的
+				;但是显示的应该从高位开始
+ 0000				show segment
+ 0000  0100 [				db 256 dup (0)
+        00
+       ]
+ 0100				show ends
+ 0000				data segment
+ 0000  000F 4240			dw 000fh,4240h
+ 0004				data ends
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES,DS:DATAS
+ 0000				START:
+ 0000  BB ---- R			mov bx,data
+ 0003  8E DB				mov ds,bx
+ 0005  8B 16 0000			mov dx,ds:[0]
+ 0009  A1 0002				mov ax,ds:[2]
+ 000C  BB ---- R		    MOV bx,DATAS
+ 000F  8E DB			    MOV ds,bx
+ 0011  BB ---- R		    mov bx,show
+ 0014  8E C3			    mov es,bx
+
+ 0016  B9 000A			    mov cx,0ah
+ 0019  E8 0009			    call dwtoc
+				    
+ 001C  B6 08			    mov dh,8
+ 001E  B2 03			    mov dl,3
+ 0020  B1 02			    mov cl,2
+ 0022  E8 007A			    call show_str
+
+ 0025					dwtoc:
+ 0025  50				push ax
+ 0026  53				push bx
+ 0027  51				push cx
+ 0028  1E				push ds
+ 0029  33 F6				xor si,si
+ 002B  33 FF				xor di,di
+ 002D					s:
+ 002D  E8 0048				call divdw
+ 0030  8B 1E 0004			mov bx,ds:[4]
+ 0034  83 C3 30				add bx,30h
+ 0037  26: 89 1C			mov es:[si],bx
+ 003A  47				inc di			;设置di记录数据有多少位
+ 003B  A1 0000				mov ax,ds:[0]	;注意循环调用calldiw时候必须预先处理好ax，dx，即将上一次取余后的商存好
+ 003E  8B 16 0002			mov dx,ds:[2]
+ 0042  83 C6 02				add si,2
+ 0045  83 FA 00				cmp dx,0		;最后结束标志ax，dx中存放数据都为0
+ 0048  74 05				je next
+ 004A  EA ---- 002D R			jmp far ptr s
+ 004F					next:
+ 004F  83 F8 00				cmp ax,0
+ 0052  74 05				je ok
+ 0054  EA ---- 002D R			jmp far ptr s
+					
+ 0059					ok:
+ 0059  33 F6				xor si,si		;实现将show段的数据逆序放到ds段中
+ 005B  8B CF				mov cx,di
+ 005D  4F				dec di
+ 005E  03 FF				add di,di
+ 0060					s1:
+ 0060  26: 8B 05			mov ax,es:[di]
+ 0063  89 44 32				mov ds:[50+si],ax
+ 0066  83 EF 02				sub di,2
+ 0069  83 C6 02				add si,2
+ 006C  E2 F2				loop s1
+					
+ 006E					ok1:
+ 006E  33 C0				xor ax,ax
+ 0070  89 44 32				mov ds:[50+si],ax
+					
+ 0073  1F				pop ds
+ 0074  59				pop cx
+ 0075  5B				pop bx
+ 0076  58				pop ax
+					
+ 0077  C3				ret
+					
+ 0078				    divdw:
+ 0078  1E			    push ds
+ 0079  52			    push dx
+ 007A  51			    push cx
+ 007B  50			    push ax
+				    
+ 007C  8B C2			    mov ax,dx	;先求高16位除以除数的结果，ax存放商，dx存放余数
+ 007E  33 D2			    xor dx,dx
+ 0080  F7 F1			    div cx
+ 0082  52			    push dx
+				    			;将余数保存下来
+ 0083  8B D0			    mov dx,ax
+ 0085  33 C0			    xor ax,ax
+ 0087  A3 0000			    mov ds:[0],ax
+ 008A  89 16 0002		    mov ds:[2],dx;将高16位的除法结果保存在高地址字单元中
+				    
+ 008E  5A			    pop dx		;弹出高16位除法结果的余数
+ 008F  58			    pop ax		;将被除数的低16位取出来
+ 0090  50			    push ax		;恢复栈顶，维持push和pop平衡
+ 0091  F7 F1			    div cx		;此时dx存放高16位除法的余数，ax存放被除数低16位
+				    			;最后结果ax存放商，dx存放余数
+				    			
+ 0093  A3 0000			    mov ds:[0],ax;将低16位的除法结果商放在低地址字单元
+ 0096  89 16 0004		    mov ds:[4],dx;最后的余数放在ds:[4]字单元中
+				    ;最后结果的低16位在ds:[0],高16位在ds:[2],余数在ds:[4]
+ 009A  58			    pop ax
+ 009B  59			    pop cx
+ 009C  5A			    pop dx
+ 009D  1F			    pop ds
+ 009E  C3			    ret
+				    
+ 009F				    show_str:
+ 009F  06			   	push es
+ 00A0  51			   	push cx
+ 00A1  50			   	push ax
+ 00A2  56			   	push si
+ 00A3  1E			   	push ds
+ 00A4  53			   	push bx
+				   	
+				   	
+ 00A5  BB B800			   	mov bx,0b800h
+ 00A8  8E C3			   	mov es,bx
+ 00AA  BB 0500			   	mov bx,500h
+ 00AD  8A D1			   	mov dl,cl
+ 00AF  33 FF			   	xor di,di
+ 00B1  33 F6			   	xor si,si
+				   	
+ 00B3  8A 45 32			   	s0:mov al,ds:[50+di]		;注意是对字节单元进行存储
+ 00B6  26: 88 40 04		   	mov es:[bx+si+4],al
+ 00BA  26: 88 50 05		   	mov es:[bx+si+5],dl
+ 00BE  83 C6 02			   	add si,2
+ 00C1  83 C7 02			   	add di,2					
+				   	;实际上十进制每位上的数小于10
+				   	;所以在内存单元存放时只放在子单元的低地址字节单元
+				   	;因此di递增2，而不是递增1
+ 00C4  3C 00			   	cmp al,0
+ 00C6  76 09				jna done
+ 00C8  EB E9			   	jmp short s0
+				   	
+ 00CA  5B			   	pop bx
+ 00CB  1F			   	pop ds
+ 00CC  5E			   	pop si
+ 00CD  58			   	pop ax
+ 00CE  59			   	pop cx
+ 00CF  07			   	pop es
+ 00D0  C3			   	ret
+				        
+ 00D1  B4 4C			    done:MOV AH,4CH
+ 00D3  CD 21			    INT 21H
+				    
+ 00D5				CODES ENDS
+				    END START
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 15:44:48
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 00D5	  Para	  Private 
+DATAS  . . . . . . . . . . . . .	16 Bit	 0100	  Para	  Private 
+data . . . . . . . . . . . . . .	16 Bit	 0004	  Para	  Private 
+show . . . . . . . . . . . . . .	16 Bit	 0100	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+divdw  . . . . . . . . . . . . .	L Near	 0078	  CODES	
+done . . . . . . . . . . . . . .	L Near	 00D1	  CODES	
+dwtoc  . . . . . . . . . . . . .	L Near	 0025	  CODES	
+next . . . . . . . . . . . . . .	L Near	 004F	  CODES	
+ok1  . . . . . . . . . . . . . .	L Near	 006E	  CODES	
+ok . . . . . . . . . . . . . . .	L Near	 0059	  CODES	
+s0 . . . . . . . . . . . . . . .	L Near	 00B3	  CODES	
+s1 . . . . . . . . . . . . . . .	L Near	 0060	  CODES	
+show_str . . . . . . . . . . . .	L Near	 009F	  CODES	
+s  . . . . . . . . . . . . . . .	L Near	 002D	  CODES	
+
+	   0 Warnings
+	   0 Errors

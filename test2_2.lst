@@ -1,0 +1,74 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/16/20 08:07:14
+tempfile.asm						     Page 1 - 1
+
+
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+ 0000  B4 01			    MOV ah,1
+ 0002  CD 21			    int 21h		;此处将键盘上输入字符存储到AL中
+				 
+ 0004  3C 0D			    cmp al,0dh
+ 0006  74 2A			    je done		;判断AL中输入字符是否为回车
+				    			;如果是自动跳转到标号：done处继续执行，done处直接结束程序
+ 0008  3C 30			    cmp al,'0'  ;判断输入字符是否在‘0’到‘9’之间			
+ 000A  72 F4			    jb start	;如果比‘0’大则返回等待下一个字符输入
+ 000C  3C 39			    cmp al,'9'	;如果比‘0’小则继续和‘9’比较
+ 000E  77 08			    ja zimuxx	;如果比‘9’大则跳转到zimuxx，判断是否在
+				    			;小写字母‘a’和‘z'之间
+				    			;如果比'9'小，则将AL中字符直接显示
+ 0010  8A D0			    mov dl,al
+ 0012  B4 02			    mov ah,2
+ 0014  CD 21			    int 21h
+ 0016  EB E8			    jmp start
+				    
+ 0018  3C 41			    zimuxx: cmp al,41h;如果输入字符比‘a’小，
+ 001A  72 E4			    jb start		  ;则返回等待下一字符输入
+ 001C  3C 5A			    cmp al,5ah		  ;如果输入字符比‘a'大，继续与‘z'比较
+ 001E  77 08			    ja zimudx		  ;如果比‘z'大，则跳转到zimudx
+				    				  ;判断是否在大写字母‘A’和‘Z’之间
+				    				  ;如果比‘z’小，则将‘c’存储到dl中显示
+ 0020  B2 63			    display:mov dl,'c'
+ 0022  B4 02			    mov ah,2
+ 0024  CD 21			    int 21h     
+				    
+ 0026  EB D8			    jmp start		  ;实现循环，显示一个字符返回等待下一字符输入
+				    
+ 0028  3C 61			    zimudx:cmp al,61h ;如果输入字符比‘A’小
+ 002A  72 D4			    jb start		  ;则返回等待下一字符输入
+ 002C  3C 7A			    cmp al,7ah		  ;如果比‘A’大，则继续与‘Z’比较
+ 002E  77 D0			    ja start		  ;如果比'Z'大，则返回等待下一字符输入
+ 0030  EB EE			    jmp display		  ;如果比'Z'小，则跳转到display处显示
+				    
+ 0032  B4 4C			    done:MOV AH,4CH
+ 0034  CD 21			    INT 21H
+ 0036				CODES ENDS
+				    END START
+
+
+Microsoft (R) Macro Assembler Version 6.11		    03/16/20 08:07:14
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 0036	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+display  . . . . . . . . . . . .	L Near	 0020	  CODES	
+done . . . . . . . . . . . . . .	L Near	 0032	  CODES	
+zimudx . . . . . . . . . . . . .	L Near	 0028	  CODES	
+zimuxx . . . . . . . . . . . . .	L Near	 0018	  CODES	
+
+	   0 Warnings
+	   0 Errors

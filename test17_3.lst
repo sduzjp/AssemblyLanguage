@@ -1,0 +1,163 @@
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 13:24:40
+tempfile.asm						     Page 1 - 1
+
+
+				;字符串的输入
+
+
+ 0000				CODES SEGMENT
+				    ASSUME CS:CODES
+ 0000				START:
+
+ 0000  E8 0004				call getstr
+					
+ 0003  B4 4C			    MOV AH,4CH
+ 0005  CD 21			    INT 21H
+				    
+ 0007				    getstr:
+ 0007  50			    push ax
+				    
+ 0008				    getstrs:
+ 0008  32 E4			    xor ah,ah
+ 000A  CD 16			    int 16h
+ 000C  3C 20			    cmp al,20h
+ 000E  72 0C			    jb nochar;判断输入字符ASCII码，若小于20h，则代表的不是字符
+ 0010  32 E4			    xor ah,ah
+ 0012  E8 002D			    call charstack;调用0号功能字符入栈
+ 0015  B4 02			    mov ah,2
+ 0017  E8 0028			    call charstack;调用2号功能，字符显示
+ 001A  EB EC			    jmp getstrs
+				    
+ 001C				    nochar:
+ 001C  80 FC 0E			    cmp ah,0eh;退格键的扫描码
+ 001F  74 07			    je backspace
+ 0021  80 FC 1C			    cmp ah,1ch;回车键的扫描码
+ 0024  74 0E			    je enter1
+ 0026  EB E0			    jmp getstrs
+				    
+ 0028				    backspace:
+ 0028  B4 01			    mov ah,1
+ 002A  E8 0015			    call charstack;调用1号功能字符出栈
+ 002D  B4 02			    mov ah,2
+ 002F  E8 0010			    call charstack;调用2号功能字符显示
+ 0032  EB D4			    jmp getstrs
+				    
+ 0034				    enter1:
+ 0034  32 C0			    xor al,al
+ 0036  32 E4			    xor ah,ah
+ 0038  E8 0007			    call charstack;调用0号功能将al中0入栈
+ 003B  B4 02			    mov ah,2
+ 003D  E8 0002			    call charstack;调用2号功能显示以0结尾的字符串
+				    
+ 0040  58			    pop ax
+ 0041  C3			    ret
+				    
+				    
+ 0042  EB 08			    charstack: jmp short charstart
+				    
+ 0044 0060 R 006E R 0084 R	    table dw charpush,charpop,charshow
+ 004A 0000			    top dw 0;栈顶
+				    
+ 004C				    charstart:
+ 004C  53			    push bx
+ 004D  52			    push dx
+ 004E  57			    push di
+ 004F  06			    push es
+				    
+ 0050  80 FC 02			    cmp ah,2
+ 0053  77 61			    ja sret
+ 0055  8A DC			    mov bl,ah
+ 0057  32 FF			    xor bh,bh
+ 0059  03 DB			    add bx,bx
+ 005B  2E: FF A7 0044 R		    jmp word ptr table[bx];调用ah功能号对应的子程序
+				    
+				    ;入栈子程序
+ 0060				    charpush:
+ 0060  2E: 8B 1E 004A R		    mov bx,top
+ 0065  88 00			    mov [bx][si],al;al中存放入栈字符
+ 0067  2E: FF 06 004A R		    inc top
+ 006C  EB 48			    jmp sret
+				    
+				    ;出栈子程序
+ 006E				    charpop:
+ 006E  2E: 83 3E 004A R		    cmp top,0
+       00
+ 0074  74 40			    je sret
+ 0076  2E: FF 0E 004A R		    dec top
+ 007B  2E: 8B 1E 004A R		    mov bx,top
+ 0080  8A 00			    mov al,[bx][si];al中存放出栈字符
+ 0082  EB 32			    jmp sret
+				    
+				    ;字符显示子程序
+ 0084				    charshow:
+ 0084  BB B800			    mov bx,0b800h
+ 0087  8E C3			    mov es,bx
+ 0089  B0 A0			    mov al,160
+ 008B  32 E4			    xor ah,ah
+ 008D  F6 E6			    mul dh;dh中存放显示位置行号，dl存放列号
+ 008F  8B F8			    mov di,ax;ax中存放乘法结果
+ 0091  02 D2			    add dl,dl;dl中存放显示位置的列偏移地址
+ 0093  32 F6			    xor dh,dh
+ 0095  03 FA			    add di,dx;di中存放显示位置总偏移地址
+				    
+ 0097  33 DB			    xor bx,bx
+				    
+ 0099				    charshows:
+ 0099  2E: 3B 1E 004A R		    cmp bx,top
+ 009E  75 06			    jne noempty
+ 00A0  26: C6 05 20		    mov byte ptr es:[di],' '
+ 00A4  EB 10			    jmp sret
+				    
+ 00A6				    noempty:
+ 00A6  8A 00			    mov al,[bx][si]
+ 00A8  26: 88 05		    mov es:[di],al
+ 00AB  26: C6 45 02 20		    mov byte ptr es:[di+2],' '
+ 00B0  43			    inc bx
+ 00B1  83 C7 02			    add di,2
+ 00B4  EB E3			    jmp charshows
+				    
+ 00B6				    sret:
+ 00B6  07			    pop es
+ 00B7  5F			    pop di
+ 00B8  5B			    pop bx
+ 00B9  58			    pop ax
+ 00BA  C3			    ret
+
+ 00BB				CODES ENDS
+				    END START
+Microsoft (R) Macro Assembler Version 6.11		    03/08/20 13:24:40
+tempfile.asm						     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+CODES  . . . . . . . . . . . . .	16 Bit	 00BB	  Para	  Private 
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+START  . . . . . . . . . . . . .	L Near	 0000	  CODES	
+backspace  . . . . . . . . . . .	L Near	 0028	  CODES	
+charpop  . . . . . . . . . . . .	L Near	 006E	  CODES	
+charpush . . . . . . . . . . . .	L Near	 0060	  CODES	
+charshows  . . . . . . . . . . .	L Near	 0099	  CODES	
+charshow . . . . . . . . . . . .	L Near	 0084	  CODES	
+charstack  . . . . . . . . . . .	L Near	 0042	  CODES	
+charstart  . . . . . . . . . . .	L Near	 004C	  CODES	
+enter1 . . . . . . . . . . . . .	L Near	 0034	  CODES	
+getstrs  . . . . . . . . . . . .	L Near	 0008	  CODES	
+getstr . . . . . . . . . . . . .	L Near	 0007	  CODES	
+nochar . . . . . . . . . . . . .	L Near	 001C	  CODES	
+noempty  . . . . . . . . . . . .	L Near	 00A6	  CODES	
+sret . . . . . . . . . . . . . .	L Near	 00B6	  CODES	
+table  . . . . . . . . . . . . .	Word	 0044	  CODES	
+top  . . . . . . . . . . . . . .	Word	 004A	  CODES	
+
+	   0 Warnings
+	   0 Errors
